@@ -1,36 +1,63 @@
 // UI za Loru — tanak sloj nad engine-om (engine/dist).
+// Dva izvora stanja za isti sto:
+//  - 'local': igra protiv računara u browseru (LoraGame + AI ovde),
+//  - 'online': server šalje room:state (vidi online.js), ovde se samo crta.
 
 import {
   LoraGame, LoraError, chooseAction, CONTRACT_NAMES, CONTRACT_GOALS, DEFAULT_CONTRACTS, SUITS, nextNeeded,
 } from './engine/dist/index.js';
+import { initOnline } from './online.js';
 
-const ME = 0;
 // ?fast — bez pauza (headless testovi)
 const FAST = new URLSearchParams(location.search).has('fast');
 const AI_DELAY = FAST ? 0 : 650;
 const TRICK_PAUSE = FAST ? 0 : 1100;
 // v2: izbor igara (stari snimci nemaju chooser/used)
 const SAVE_KEY = 'lora.save.v2';
-// Pozicije: 1 = desno, 2 = preko puta, 3 = levo (igra se suprotno od kazaljke).
-const NAMES = ['Vi', 'Milan', 'Jelena', 'Bora'];
+// Lokalno: 0 = vi, 1 = desno, 2 = preko puta, 3 = levo (igra se suprotno od kazaljke).
+const LOCAL_NAMES = ['Vi', 'Milan', 'Jelena', 'Bora'];
 const COLORS = ['#2f7dd1', '#c0392b', '#8e44ad', '#d68910'];
 
 const $ = id => document.getElementById(id);
 
-let game;
+let mode = 'local';      // 'local' | 'online'
+let game = null;         // lokalna igra
+let online = null;       // API iz online.js
+let onlineState = null;  // poslednji room:state
 let level = 'medium';
 let timer = null;
 let busy = false;        // pauza dok se prikazuje završen štih
+let lastView = null;     // prethodni prikaz (za otkrivanje završenog štiha)
 let toastTimer = null;
-let pickerOpen = false;  // meni za izbor igre — otvara se klikom na dugme
+let pickerOpen = false;
+let dealEndShown = null; // dealIndex za koji je prikazan dijalog kraja partije
+let passSentFor = null;  // online: automatsko "dalje" samo jednom po verziji
 
-// ---------- čuvanje ----------
+// ---------- izvor stanja ----------
+
+/** Sve što sto treba da nacrta, bez obzira odakle stiže. */
+function ctx() {
+  if (mode === 'online') {
+    const st = onlineState;
+    if (!st?.view) return { v: null, me: 0, names: [], seats: null };
+    return {
+      v: st.view,
+      me: st.mySeat,
+      names: st.seats.map((s, i) => (i === st.mySeat ? 'Vi' : s.name ?? '—')),
+      seats: st.seats,
+    };
+  }
+  return { v: game.getPlayerView(0), me: 0, names: LOCAL_NAMES, seats: null };
+}
+
+// ---------- lokalno čuvanje ----------
 
 function save() {
+  if (mode !== 'local' || !game) return;
   try { localStorage.setItem(SAVE_KEY, JSON.stringify({ level, state: game.getState() })); } catch {}
 }
 
-function load() {
+function loadLocal() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
@@ -43,11 +70,13 @@ function load() {
   }
 }
 
-function newGame() {
+function newLocalGame() {
   clearTimeout(timer);
   busy = false;
   pickerOpen = false;
+  dealEndShown = null;
   game = new LoraGame();
+  lastView = null;
   save();
   render();
   step();
@@ -71,47 +100,50 @@ function backImg() {
   return img;
 }
 
-const rel = p => (p - ME + 4) % 4;
 const letter = suit => ({ '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' })[suit];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 // ---------- render ----------
 
 function render(showTrick = null) {
-  const v = game.getPlayerView(ME);
+  const c = ctx();
+  const { v, names } = c;
+  if (!v) return;
+  const rel = p => (p - c.me + 4) % 4;
 
   $('contractName').textContent = v.contract ? CONTRACT_NAMES[v.contract] : 'Bira se igra';
   $('dealInfo').innerHTML =
-    `Igra: <strong>${esc(NAMES[v.chooser])}</strong> · Delio: <strong>${esc(NAMES[v.dealer])}</strong> · partija ${v.dealIndex + 1}/28`;
+    `Igra: <strong>${esc(names[v.chooser])}</strong> · Delio: <strong>${esc(names[v.dealer])}</strong> · partija ${v.dealIndex + 1}/28`;
   let goal = v.contract ? esc(CONTRACT_GOALS[v.contract]) : '';
   if (v.contract === 'LORA') {
-    goal += v.layout.startRank
-      ? ` · počinje se od <b>${v.layout.startRank}</b>`
-      : ' · prva karta određuje početni rang';
+    goal += v.layout.startRank ? ` · počinje se od <b>${v.layout.startRank}</b>` : ' · prva karta određuje početni rang';
   }
   $('goal').innerHTML = goal;
 
-  for (const p of [0, 1, 2, 3]) renderSeat(v, p, showTrick);
-  renderCenter(v, showTrick);
-  renderHand(v, showTrick);
-  // akcije (izbor igre) stoje desno od karata
-  $('actions').replaceChildren(...(v.phase === 'CHOOSING' && v.chooser === ME ? [picker(v)] : []));
+  for (const p of [0, 1, 2, 3]) renderSeat(c, p, rel(p), showTrick);
+  renderCenter(c, rel, showTrick);
+  renderHand(c, showTrick);
+  $('actions').replaceChildren(...(v.phase === 'CHOOSING' && v.chooser === c.me ? [picker(v)] : []));
 }
 
-function renderSeat(v, p, showTrick) {
-  const el = document.querySelector(`.seat[data-seat="${rel(p)}"]`);
+function renderSeat(c, p, relPos, showTrick) {
+  const { v, names, seats } = c;
+  const el = document.querySelector(`.seat[data-seat="${relPos}"]`);
   const acting = v.phase === 'TRICKS' || v.phase === 'LAYOUT' || v.phase === 'CHOOSING';
   const active = !showTrick && acting && v.turn === p;
+  const info = seats?.[p];
 
   const plate = document.createElement('div');
-  plate.className = 'plate' + (active ? ' active' : '');
+  plate.className = 'plate' + (active ? ' active' : '') + (info && !info.connected ? ' offline' : '');
   const tricks = v.phase === 'TRICKS' ? ` · štihova <b>${v.trickCounts[p]}</b>` : '';
-  const cards = p !== ME ? ` · karata <b>${v.handCounts[p]}</b>` : '';
+  const cards = p !== c.me ? ` · karata <b>${v.handCounts[p]}</b>` : '';
+  const tag = info?.kind === 'ai' && !String(info.name).includes('(AI)') ? '<span class="ai-tag">AI</span>'
+    : info && !info.connected ? '<span class="ai-tag">bez veze</span>' : '';
   plate.innerHTML =
-    `<div class="avatar" style="background:${COLORS[p]}">${esc(NAMES[p][0])}</div>` +
-    `<div><div class="name">${esc(NAMES[p])}</div>` +
+    `<div class="avatar" style="background:${COLORS[p]}">${esc(String(names[p])[0] ?? '?')}</div>` +
+    `<div><div class="name">${esc(names[p])}${tag}</div>` +
     `<div class="sub">poena <b>${v.scores[p]}</b>${tricks}</div>` +
-    `<div class="sub">igre ${v.used[p].length}/${DEFAULT_CONTRACTS.length}${p !== ME ? cards : ''}</div></div>` +
+    `<div class="sub">igre ${v.used[p].length}/${DEFAULT_CONTRACTS.length}${cards}${info && p !== c.me ? ` · rejting ${info.rating}` : ''}</div></div>` +
     (v.dealer === p ? '<span class="dealer-chip" title="Delio">D</span>' : '');
 
   const chips = document.createElement('div');
@@ -121,8 +153,7 @@ function renderSeat(v, p, showTrick) {
 
   const parts = [plate];
   if (chips.childElementCount) parts.push(chips);
-
-  if (p !== ME) {
+  if (p !== c.me) {
     const backs = document.createElement('div');
     backs.className = 'backs';
     backs.append(...Array.from({ length: v.handCounts[p] }, backImg));
@@ -131,7 +162,7 @@ function renderSeat(v, p, showTrick) {
   el.replaceChildren(...parts);
 }
 
-/** Padajući meni za izbor igre, uz vašu pločicu. */
+/** Padajući meni za izbor igre, desno od karata. */
 function picker(v) {
   const wrap = document.createElement('div');
   wrap.className = 'picker';
@@ -141,7 +172,6 @@ function picker(v) {
   btn.setAttribute('aria-expanded', String(pickerOpen));
   btn.addEventListener('click', () => { pickerOpen = !pickerOpen; render(); });
   wrap.appendChild(btn);
-
   if (pickerOpen) {
     const menu = document.createElement('div');
     menu.className = 'pick-menu';
@@ -159,33 +189,31 @@ function picker(v) {
   return wrap;
 }
 
-function renderCenter(v, showTrick) {
+function renderCenter(c, rel, showTrick) {
+  const { v, names } = c;
   const trickEl = $('trick');
   const layoutEl = $('layout');
   const msgEl = $('centerMsg');
   const isChoosing = v.phase === 'CHOOSING';
   const isLayout = !isChoosing && v.contract === 'LORA';
 
-  // kad vi birate, meni uz vaše ime je dovoljan — poruka na stolu bi se preklapala sa njim
-  msgEl.hidden = !isChoosing || v.chooser === ME;
+  msgEl.hidden = !isChoosing || v.chooser === c.me;
   layoutEl.hidden = !isLayout;
   trickEl.hidden = isChoosing || isLayout;
   if (!isLayout) layoutEl.replaceChildren();
 
   if (isChoosing) {
-    msgEl.textContent = `${NAMES[v.chooser]} bira igru…`;
+    msgEl.textContent = `${names[v.chooser]} bira igru…`;
     return;
   }
 
   if (isLayout) {
-    // po jedan red za svaku boju: odigrane karte + isprekidana "duh" karta za sledeću na redu
     layoutEl.replaceChildren(...SUITS.map(suit => {
       const row = document.createElement('div');
       row.className = 'row';
       for (const rank of v.layout.piles[suit]) row.appendChild(cardImg({ id: rank + letter(suit), rank, suit }));
       const need = v.layout.startRank ? nextNeeded(v.layout, suit) : null;
-      const complete = v.layout.piles[suit].length === 8;
-      if (!complete) {
+      if (v.layout.piles[suit].length < 8) {
         const ghost = document.createElement('div');
         ghost.className = 'ghost' + (suit === '♥' || suit === '♦' ? ' red' : '');
         ghost.innerHTML = need ? `${need}<small>${suit}</small>` : suit;
@@ -208,9 +236,10 @@ function renderCenter(v, showTrick) {
   }));
 }
 
-function renderHand(v, showTrick) {
+function renderHand(c, showTrick) {
+  const { v } = c;
   const hand = $('myHand');
-  const myTurn = !showTrick && !busy && v.turn === ME && (v.phase === 'TRICKS' || v.phase === 'LAYOUT');
+  const myTurn = !showTrick && !busy && v.turn === c.me && (v.phase === 'TRICKS' || v.phase === 'LAYOUT');
   hand.classList.toggle('my-turn', myTurn);
   hand.replaceChildren(...v.hand.map(card => {
     const el = document.createElement('div');
@@ -228,45 +257,59 @@ function renderHand(v, showTrick) {
   }));
 }
 
-// ---------- tok igre ----------
+// ---------- potezi čoveka ----------
 
 function humanPlay(cardId) {
   if (busy) return;
-  const before = game.getState();
+  if (mode === 'online') { online.send({ type: 'play', cardId }); return; }
   try {
-    game.play(ME, cardId);
+    game.play(0, cardId);
   } catch (e) {
     if (e instanceof LoraError) { toast(e.message); return; }
     throw e;
   }
-  afterAction(before);
+  afterLocalAction();
 }
 
 function humanChoose(contract) {
   if (busy) return;
-  const before = game.getState();
+  pickerOpen = false;
+  if (mode === 'online') { online.send({ type: 'choose', contract }); return; }
   try {
-    game.choose(ME, contract);
+    game.choose(0, contract);
   } catch (e) {
     if (e instanceof LoraError) { toast(e.message); return; }
     throw e;
   }
-  pickerOpen = false;
-  afterAction(before);
+  afterLocalAction();
 }
 
-function afterAction(before) {
-  save();
-  const s = game.getState();
-  // četvrta karta u štihu → pokaži završen štih (i ko ga nosi), pa nastavi
-  if (before.phase === 'TRICKS' && before.trick.length === 3 && s.lastTrick) {
+/** Da li je između dva prikaza završen štih (i koji). */
+function completedTrick(prev, v) {
+  if (!prev || !v || prev.dealIndex !== v.dealIndex || !v.lastTrick) return null;
+  return v.trickNo > prev.trickNo ? v.lastTrick : null;
+}
+
+/** Posle svake promene: pokaži završen štih pa nastavi, ili odmah nastavi. */
+function showUpdate(then) {
+  const v = ctx().v;
+  const done = completedTrick(lastView, v);
+  lastView = v;
+  if (done) {
     busy = true;
-    render(s.lastTrick);
-    timer = setTimeout(() => { busy = false; render(); step(); }, TRICK_PAUSE);
+    render(done);
+    timer = setTimeout(() => { busy = false; render(); then(); }, TRICK_PAUSE);
     return;
   }
   render();
-  step();
+  then();
+}
+
+// ---------- lokalni tok (protiv računara) ----------
+
+function afterLocalAction() {
+  save();
+  showUpdate(step);
 }
 
 function step() {
@@ -274,65 +317,121 @@ function step() {
   const s = game.getState();
   if (s.phase === 'DEAL_END' || s.phase === 'MATCH_END') { showDealEnd(); return; }
   const v = game.getPlayerView(s.turn);
-  if (s.turn === ME) {
+  if (s.turn === 0) {
     if (v.mustPass) {
-      timer = setTimeout(() => { toast('Nemate kartu koja može — dalje'); const b = game.getState(); game.pass(ME); afterAction(b); }, FAST ? 0 : 700);
+      timer = setTimeout(() => { toast('Nemate kartu koja može — dalje'); game.pass(0); afterLocalAction(); }, FAST ? 0 : 700);
     }
     return;
   }
   timer = setTimeout(() => {
-    const before = game.getState();
-    const a = chooseAction(game.getPlayerView(before.turn), level);
-    if (a.type === 'pass') game.pass(before.turn);
+    const turn = game.getState().turn;
+    const a = chooseAction(game.getPlayerView(turn), level);
+    if (a.type === 'pass') game.pass(turn);
     else if (a.type === 'choose') {
-      game.choose(before.turn, a.contract);
-      toast(`${NAMES[before.turn]} bira: ${CONTRACT_NAMES[a.contract]}`);
-    } else game.play(before.turn, a.cardId);
-    afterAction(before);
+      game.choose(turn, a.contract);
+      toast(`${LOCAL_NAMES[turn]} bira: ${CONTRACT_NAMES[a.contract]}`);
+    } else game.play(turn, a.cardId);
+    afterLocalAction();
   }, s.phase === 'CHOOSING' ? AI_DELAY * 2 : AI_DELAY);
 }
 
-// ---------- kraj partije / tabela ----------
+// ---------- online tok (server odlučuje, ovde se samo crta) ----------
+
+function onRoomState(st) {
+  const prevStatus = onlineState?.status;
+  onlineState = st;
+  if (st.status === 'WAITING') { lastView = null; return; } // čekaonicu crta online.js
+  if (busy) return; // posle pauze se crta najnovije stanje
+  showUpdate(() => afterOnlineUpdate(prevStatus));
+}
+
+function afterOnlineUpdate() {
+  const st = onlineState;
+  const v = st.view;
+  if (!v) return;
+  // nova partija počela → zatvori dijalog prethodne
+  if ($('dealEnd').open && v.phase !== 'DEAL_END' && st.status !== 'FINISHED') $('dealEnd').close();
+  if ((v.phase === 'DEAL_END' || st.status === 'FINISHED') && dealEndShown !== `${v.dealIndex}:${st.status}`) {
+    dealEndShown = `${v.dealIndex}:${st.status}`;
+    showDealEnd();
+  }
+  if (v.phase === 'DEAL_END' && $('dealEnd').open) updateReadyButton();
+  if (v.mustPass && v.turn === st.mySeat && passSentFor !== st.version) {
+    passSentFor = st.version;
+    toast('Nemate kartu koja može — dalje');
+    setTimeout(() => online.send({ type: 'pass' }), FAST ? 0 : 700);
+  }
+}
+
+function updateReadyButton() {
+  const st = onlineState;
+  const btn = $('nextDealBtn');
+  const waiting = st.seats.filter((s, i) => s.kind === 'human' && s.connected && !st.ready.includes(i)).length;
+  if (st.ready.includes(st.mySeat)) {
+    btn.disabled = true;
+    btn.textContent = waiting ? `Čeka se još ${waiting}…` : 'Kreće…';
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'Sledeća igra';
+  }
+}
+
+// ---------- kraj partije / meča ----------
 
 function showDealEnd() {
-  const s = game.getState();
-  const last = s.history.at(-1);
+  const c = ctx();
+  const { v, names } = c;
+  const last = v.history.at(-1);
   if (!last) return;
-  $('dealEndTitle').textContent = s.phase === 'MATCH_END'
-    ? (s.winners.includes(ME) ? 'Pobeda! 🎉' : `Pobednik: ${s.winners.map(p => NAMES[p]).join(', ')}`)
-    : `${CONTRACT_NAMES[last.contract]} (igra: ${NAMES[last.chooser]}) — kraj`;
-  const min = Math.min(...s.scores);
+  const finished = v.phase === 'MATCH_END';
+  const rating = mode === 'online' ? onlineState.rating : null;
+
+  $('dealEndTitle').textContent = finished
+    ? (v.winners.includes(c.me) ? 'Pobeda! 🎉' : `Pobednik: ${v.winners.map(p => names[p]).join(', ')}`)
+    : `${CONTRACT_NAMES[last.contract]} (igra: ${names[last.chooser]}) — kraj`;
+  const min = Math.min(...v.scores);
+  const ratingCol = finished && rating?.rated;
+  $('dealEnd').querySelector('thead tr').innerHTML =
+    `<th></th><th>Ova igra</th><th>Ukupno</th>${ratingCol ? '<th>Rejting</th>' : ''}`;
   $('dealEndBody').innerHTML = [0, 1, 2, 3].map(p =>
-    `<tr><td>${esc(NAMES[p])}</td><td>${fmt(last.points[p])}</td><td class="${s.scores[p] === min ? 'best' : ''}">${s.scores[p]}</td></tr>`).join('');
-  $('nextDealBtn').textContent = s.phase === 'MATCH_END' ? 'Nova igra' : 'Sledeća igra';
-  $('dealEnd').showModal();
+    `<tr><td>${esc(names[p])}</td><td>${fmt(last.points[p])}</td><td class="${v.scores[p] === min ? 'best' : ''}">${v.scores[p]}</td>` +
+    (ratingCol ? `<td>${rating.newRatings[p]} (${fmt(rating.deltas[p])})</td>` : '') + '</tr>').join('');
+
+  const btn = $('nextDealBtn');
+  btn.disabled = false;
+  if (finished) btn.textContent = mode === 'online' ? 'Nazad u lobi' : 'Nova igra';
+  else if (mode === 'online') updateReadyButton();
+  else btn.textContent = 'Sledeća igra';
+  if (!$('dealEnd').open) $('dealEnd').showModal();
 }
 
 const fmt = n => (n > 0 ? `+${n}` : String(n));
 
 /** Svaki igrač ima svoju tabelu: 7 igara, odigrane sa rezultatima, ostale sive. */
 function renderSheet() {
-  const s = game.getState();
-  const head = `<thead><tr><th>Igra</th>${NAMES.map(x => `<th>${esc(x)}</th>`).join('')}</tr></thead>`;
+  const c = ctx();
+  const { v, names } = c;
+  if (!v) return;
+  const head = `<thead><tr><th>Igra</th>${names.map(x => `<th>${esc(x)}</th>`).join('')}</tr></thead>`;
   let html = '';
   for (const owner of [0, 1, 2, 3]) {
-    const played = s.history.filter(h => h.chooser === owner);
-    const title = owner === ME ? 'Vaša tabela' : `Tabela: ${NAMES[owner]}`;
+    const played = v.history.filter(h => h.chooser === owner);
+    const title = owner === c.me ? 'Vaša tabela' : `Tabela: ${names[owner]}`;
     html += `<h3>${esc(title)} (${played.length}/${DEFAULT_CONTRACTS.length})</h3><table class="result">${head}<tbody>`;
     for (const contract of DEFAULT_CONTRACTS) {
       const h = played.find(x => x.contract === contract);
-      const current = !h && s.chooser === owner && s.contract === contract && s.phase !== 'CHOOSING';
+      const current = !h && v.chooser === owner && v.contract === contract && v.phase !== 'CHOOSING';
       const cells = [0, 1, 2, 3].map(p => `<td class="${p === owner ? 'mine' : ''}">${h ? fmt(h.points[p]) : current ? '…' : ''}</td>`).join('');
       html += `<tr class="${h || current ? '' : 'pending'}"><td>${CONTRACT_NAMES[contract]}${current ? ' (u toku)' : ''}</td>${cells}</tr>`;
     }
     html += '</tbody></table>';
   }
-  html += `<table class="result"><tbody><tr class="total"><td>Ukupno</td>${s.scores.map(x => `<td>${x}</td>`).join('')}</tr></tbody></table>`;
+  html += `<table class="result"><tbody><tr class="total"><td>Ukupno</td>${v.scores.map(x => `<td>${x}</td>`).join('')}</tr></tbody></table>`;
   $('sheetBody').innerHTML = html;
   $('sheet').showModal();
 }
 
-// ---------- toast / dugmad ----------
+// ---------- toast ----------
 
 function toast(msg) {
   const t = $('toast');
@@ -342,29 +441,111 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
 }
 
+// ---------- ekrani / režimi ----------
+
+function showScreen(id) {
+  for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== id;
+}
+
+function goHome() {
+  clearTimeout(timer);
+  showScreen('startScreen');
+}
+
+function startLocal() {
+  mode = 'local';
+  onlineState = null;
+  lastView = null;
+  $('chatBtn').hidden = true;
+  $('chatPanel').hidden = true;
+  showScreen(null);
+  if (game) { render(); step(); }
+  else if (loadLocal()) { render(); step(); }
+  else newLocalGame();
+}
+
+// ---------- dugmad ----------
+
 $('nextDealBtn').addEventListener('click', () => {
+  if (mode === 'online') {
+    if (onlineState.status === 'FINISHED') { $('dealEnd').close(); online.leaveFinished(); return; }
+    online.ready();
+    return;
+  }
   $('dealEnd').close();
-  if (game.getState().phase === 'MATCH_END') { newGame(); return; }
+  if (game.getState().phase === 'MATCH_END') { newLocalGame(); return; }
   game.nextDeal();
   save();
+  lastView = null;
   render();
   step();
 });
 $('dealSheetBtn').addEventListener('click', renderSheet);
 $('sheetBtn').addEventListener('click', renderSheet);
 $('closeSheetBtn').addEventListener('click', () => $('sheet').close());
-$('menuBtn').addEventListener('click', () => { $('levelSel').value = level; $('menu').showModal(); });
+$('menuBtn').addEventListener('click', () => {
+  const isOnline = mode === 'online';
+  $('levelSel').value = level;
+  $('levelLabel').hidden = isOnline;
+  $('newGameBtn').hidden = isOnline;
+  $('leaveMatchBtn').hidden = !isOnline;
+  $('menu').showModal();
+});
 $('closeMenuBtn').addEventListener('click', () => $('menu').close());
 $('levelSel').addEventListener('change', e => { level = e.target.value; save(); });
-$('newGameBtn').addEventListener('click', () => { $('menu').close(); newGame(); });
+$('newGameBtn').addEventListener('click', () => { $('menu').close(); newLocalGame(); });
+$('homeBtn').addEventListener('click', () => {
+  $('menu').close();
+  if (mode === 'online') online.showLobby();
+  else goHome();
+});
+$('leaveMatchBtn').addEventListener('click', () => {
+  if (!confirm('Napustiti meč? AI će igrati umesto vas do kraja, a možete se vratiti istim kodom sobe.')) return;
+  $('menu').close();
+  online.leaveMatch();
+});
+$('goLocalBtn').addEventListener('click', startLocal);
+$('goOnlineBtn').addEventListener('click', () => online.start());
 document.addEventListener('click', e => {
   if (pickerOpen && !e.target.closest('.picker')) { pickerOpen = false; render(); }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && pickerOpen && game.getState().phase === 'CHOOSING') { pickerOpen = false; render(); } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && pickerOpen) { pickerOpen = false; render(); }
+});
 
 // ---------- start ----------
 
-if (load()) { render(); step(); }
-else newGame();
+online = initOnline({
+  onRoomState,
+  onEnterTable() {
+    mode = 'online';
+    clearTimeout(timer);
+    busy = false;
+    lastView = null;
+    dealEndShown = null;
+    passSentFor = null;
+    $('chatBtn').hidden = false;
+    showScreen(null);
+    if (onlineState?.view) render();
+  },
+  onLeaveTable() {
+    if ($('dealEnd').open) $('dealEnd').close();
+    onlineState = null;
+    lastView = null;
+  },
+  toast,
+  goHome,
+  showScreen,
+});
 
-window.__lora = { get game() { return game; }, get busy() { return busy; }, ME };
+if (new URLSearchParams(location.search).has('room')) online.start();
+else if (new URLSearchParams(location.search).has('local')) startLocal();
+else goHome();
+
+window.__lora = {
+  get game() { return game; },
+  get busy() { return busy; },
+  get mode() { return mode; },
+  get onlineState() { return onlineState; },
+  ME: 0,
+};

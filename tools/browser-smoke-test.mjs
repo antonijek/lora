@@ -16,7 +16,7 @@ try {
     page.on('pageerror', e => errors.push(String(e)));
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     page.on('requestfailed', r => errors.push(`request failed: ${r.url()}`));
-    await page.goto(`http://localhost:${PORT}/?fast`);
+    await page.goto(`http://localhost:${PORT}/?fast&local`);
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     await page.waitForSelector('#myHand .card');

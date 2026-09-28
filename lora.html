@@ -16,6 +16,7 @@
       <span id="dealInfo"></span>
     </div>
     <div class="top-buttons">
+      <button id="chatBtn" class="icon-btn" aria-label="Chat" title="Chat" hidden>💬<span id="chatBadge" class="badge" hidden></span></button>
       <button id="sheetBtn" class="icon-btn" aria-label="Tabela" title="Tabela">▦</button>
       <button id="menuBtn" class="icon-btn" aria-label="Meni" title="Meni">☰</button>
     </div>
@@ -47,7 +48,7 @@
 
   <dialog id="menu">
     <h2>Meni</h2>
-    <label>Protivnici
+    <label id="levelLabel">Protivnici
       <select id="levelSel">
         <option value="easy">Početnici</option>
         <option value="medium" selected>Iskusni</option>
@@ -55,6 +56,8 @@
     </label>
     <div class="dialog-buttons">
       <button id="newGameBtn" class="btn primary">Nova igra</button>
+      <button id="leaveMatchBtn" class="btn" hidden>Napusti meč</button>
+      <button id="homeBtn" class="btn">Početna</button>
       <a class="btn" href="./pravila.html">Pravila</a>
       <button id="closeMenuBtn" class="btn">Zatvori</button>
     </div>
@@ -76,6 +79,79 @@
     <h2>Tabela</h2>
     <div class="sheet-scroll sheet" id="sheetBody"></div>
     <div class="dialog-buttons"><button id="closeSheetBtn" class="btn primary">Zatvori</button></div>
+  </dialog>
+
+  <!-- ===================== ekrani van stola ===================== -->
+  <section id="startScreen" class="screen" hidden>
+    <div class="panel hero">
+      <h2>Lora</h2>
+      <p class="muted">Kartaška igra za četvoro — sedam igara, 28 partija.</p>
+      <button id="goOnlineBtn" class="btn primary big">Igraj online</button>
+      <button id="goLocalBtn" class="btn big">Igraj protiv računara</button>
+      <a class="link" href="./pravila.html">Pravila igre</a>
+    </div>
+  </section>
+
+  <section id="loginScreen" class="screen" hidden>
+    <form id="loginForm" class="panel" autocomplete="on">
+      <h2 id="loginTitle">Prijava</h2>
+      <p class="muted small">Isti nalog važi i za Preferans.</p>
+      <label id="nameRow" hidden>Ime za stolom<input id="loginName" maxlength="40" autocomplete="nickname"></label>
+      <label>Email<input id="loginEmail" type="email" required autocomplete="email"></label>
+      <label>Lozinka<input id="loginPassword" type="password" required minlength="4" autocomplete="current-password"></label>
+      <p id="loginError" class="error" role="alert"></p>
+      <button id="loginSubmit" class="btn primary big" type="submit">Prijavi se</button>
+      <button id="loginToggle" class="link" type="button">Nemate nalog? Registrujte se</button>
+      <button class="link backHome" type="button">← Nazad</button>
+    </form>
+  </section>
+
+  <section id="lobbyScreen" class="screen" hidden>
+    <div class="panel wide">
+      <div class="lobby-head">
+        <h2>Lobi</h2>
+        <div class="me-box"><span id="lobbyMe"></span><button id="logoutBtn" class="link" type="button">Odjava</button></div>
+      </div>
+      <div class="lobby-actions">
+        <button id="quickBtn" class="btn primary big">Brza igra</button>
+        <button id="createBtn" class="btn big">Napravi sobu</button>
+        <form id="joinForm" class="join"><input id="joinCode" placeholder="Kod sobe" maxlength="5" autocapitalize="characters"><button class="btn" type="submit">Uđi</button></form>
+      </div>
+      <p id="lobbyError" class="error" role="alert"></p>
+      <div class="lobby-cols">
+        <div><h3>Otvorene sobe</h3><ul id="roomList" class="list"></ul></div>
+        <div><h3>Najbolji igrači</h3><ol id="leaderboard" class="list"></ol></div>
+      </div>
+      <p class="muted small" id="onlineCount"></p>
+      <button class="link backHome" type="button">← Početna</button>
+    </div>
+  </section>
+
+  <section id="waitingScreen" class="screen" hidden>
+    <div class="panel wide">
+      <h2>Soba <span id="roomCode" class="code"></span></h2>
+      <p class="muted small">Pošaljite kod ili link prijateljima. <button id="copyLinkBtn" class="link" type="button">Kopiraj link</button></p>
+      <div id="waitSeats" class="wait-seats"></div>
+      <p id="waitHint" class="muted small"></p>
+      <div class="dialog-buttons">
+        <button id="startBtn" class="btn primary big">Počni</button>
+        <button id="inviteBtn" class="btn">Pozovi igrače</button>
+        <button id="leaveRoomBtn" class="btn">Izađi</button>
+      </div>
+      <ul id="inviteList" class="list" hidden></ul>
+    </div>
+  </section>
+
+  <aside id="chatPanel" class="chat" hidden>
+    <div class="chat-head"><b>Chat</b><button id="chatClose" class="icon-btn" aria-label="Zatvori chat">✕</button></div>
+    <div id="chatLog" class="chat-log"></div>
+    <form id="chatForm" class="chat-form"><input id="chatInput" maxlength="300" placeholder="Poruka…" autocomplete="off"><button class="btn primary" type="submit">Pošalji</button></form>
+  </aside>
+
+  <dialog id="inviteDialog">
+    <h2>Poziv</h2>
+    <p id="inviteText"></p>
+    <div class="dialog-buttons"><button id="inviteAccept" class="btn primary">Uđi u sobu</button><button id="inviteDecline" class="btn">Ne sada</button></div>
   </dialog>
 
   <script type="module" src="./app.js"></script>

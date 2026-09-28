@@ -216,3 +216,85 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
   .actions:empty { display: none; }
   .pick-menu { left: 50%; transform: translateX(-50%); }
 }
+
+/* ===================== ekrani van stola (start, prijava, lobi, čekaonica) ===================== */
+.screen {
+  position: fixed; inset: 0; z-index: 20; overflow: auto;
+  display: grid; place-items: center; padding: 16px;
+  background: radial-gradient(ellipse at 50% 30%, var(--room-2), var(--room) 75%);
+}
+.panel {
+  width: min(420px, 100%); background: var(--plate); border: 1px solid var(--plate-edge);
+  border-radius: 16px; padding: 24px; box-shadow: 0 16px 40px rgba(0,0,0,.5);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.panel.wide { width: min(760px, 100%); }
+.panel.hero { align-items: stretch; text-align: center; }
+.panel h2 { margin: 0; font-size: 1.6rem; }
+.panel h3 { margin: 0 0 6px; font-size: 1rem; color: var(--muted); font-weight: 600; }
+.panel label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: .9rem; }
+.panel input {
+  font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--plate-edge);
+  background: rgba(255,255,255,.06); color: var(--ink);
+}
+.panel input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.panel .btn { color: var(--ink); border-color: var(--plate-edge); }
+.panel .btn.primary { color: var(--accent-ink); }
+.btn.big { padding: 12px 18px; font-size: 1.05rem; }
+.link { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; align-self: center; }
+.muted { color: var(--muted); margin: 0; }
+.small { font-size: .85rem; }
+.error { color: #ff8a8a; margin: 0; min-height: 1.2em; font-size: .9rem; }
+
+.lobby-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.me-box { display: flex; gap: 12px; align-items: center; color: var(--muted); }
+.me-box b { color: var(--ink); }
+.lobby-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.join { display: flex; gap: 6px; }
+.join input { width: 8.5em; text-transform: uppercase; letter-spacing: .1em; }
+.lobby-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+ol.list { counter-reset: r; }
+.list li {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,.05); font-size: .95rem;
+}
+.list li.empty { color: var(--muted); background: none; padding-left: 0; }
+.list li .btn { padding: 6px 12px; }
+
+.code { font-family: ui-monospace, Consolas, monospace; color: var(--accent); letter-spacing: .12em; }
+.wait-seats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.wait-seat {
+  display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 12px;
+  border: 1px dashed var(--plate-edge); min-height: 64px;
+}
+.wait-seat.filled { border-style: solid; background: rgba(255,255,255,.05); }
+.wait-seat .grow { flex: 1; min-width: 0; }
+.wait-seat .name { font-size: 1rem; overflow: hidden; text-overflow: ellipsis; }
+.wait-seat .btn { padding: 6px 10px; font-size: .85rem; }
+
+/* chat */
+.chat {
+  position: fixed; right: 16px; bottom: 16px; z-index: 15; width: min(340px, calc(100vw - 32px)); height: min(420px, 60dvh);
+  display: flex; flex-direction: column; background: #0b1811; border: 1px solid var(--plate-edge);
+  border-radius: 14px; box-shadow: 0 12px 30px rgba(0,0,0,.5);
+}
+.chat-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--plate-edge); }
+.chat-log { flex: 1; overflow: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
+.chat-log .sys { color: var(--muted); font-style: italic; }
+.chat-log b { color: var(--accent); }
+.chat-form { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--plate-edge); }
+.chat-form input { flex: 1; min-width: 0; font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--plate-edge); background: rgba(255,255,255,.06); color: var(--ink); }
+.chat-form .btn { padding: 8px 12px; }
+#chatBtn { position: relative; }
+.badge { position: absolute; top: 0; right: 0; min-width: 16px; height: 16px; border-radius: 8px; background: #e25d5d; color: #fff; font-size: .65rem; font-weight: 700; display: grid; place-items: center; padding: 0 4px; }
+.plate.offline { opacity: .55; }
+.plate .ai-tag { font-size: .7rem; color: var(--muted); font-weight: 600; margin-left: 4px; }
+
+@media (max-width: 640px) {
+  .lobby-cols { grid-template-columns: 1fr; }
+  .wait-seats { grid-template-columns: 1fr; }
+  .panel { padding: 18px; }
+  /* na telefonu chat ide gore, da ne pokriva karte u ruci */
+  .chat { top: 52px; bottom: auto; left: 8px; right: 8px; width: auto; height: 42dvh; }
+}
