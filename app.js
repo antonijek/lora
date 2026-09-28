@@ -24,7 +24,7 @@ let mode = 'local';      // 'local' | 'online'
 let game = null;         // lokalna igra
 let online = null;       // API iz online.js
 let onlineState = null;  // poslednji room:state
-let level = 'medium';
+let level = 'hard';
 let timer = null;
 let busy = false;        // pauza dok se prikazuje završen štih
 let lastView = null;     // prethodni prikaz (za otkrivanje završenog štiha)
@@ -54,7 +54,7 @@ function ctx() {
 
 function save() {
   if (mode !== 'local' || !game) return;
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ level, state: game.getState() })); } catch {}
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ aiLevel: level, state: game.getState() })); } catch {}
 }
 
 function loadLocal() {
@@ -62,7 +62,8 @@ function loadLocal() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
     const data = JSON.parse(raw);
-    level = data.level ?? 'medium';
+    // stari snimci su imali 'level' (samo easy/medium) — novi podrazumevani AI je 'hard'
+    level = data.aiLevel ?? 'hard';
     game = LoraGame.fromState(data.state);
     return true;
   } catch {

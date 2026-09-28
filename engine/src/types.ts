@@ -93,6 +93,12 @@ export interface LoraState {
   layout: Layout;
   /** Ko je rekao "dalje" u slaganju (za UI). */
   lastPass: Position | null;
+  /**
+   * Karte za koje se ZNA da ih igrač nema (javna informacija, svi za stolom
+   * je vide): nije pratio boju → nema tu boju; rekao "dalje" u Lori → nema
+   * nijednu kartu koja je tada mogla na sto. Koristi je AI za realna deljenja.
+   */
+  missing: CardId[][];
   scores: number[];
   history: DealResult[];
   /** Na kraju meča: igrač(i) sa najmanje poena. */

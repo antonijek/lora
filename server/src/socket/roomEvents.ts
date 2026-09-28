@@ -14,7 +14,7 @@ import { broadcast, buildRoomState, scheduleAi } from '../rooms/driver.js';
 type Ack = (response: Record<string, unknown>) => void;
 
 const AI_NAMES = ['Milan', 'Jelena', 'Bora', 'Vesna', 'Zoran', 'Maja'];
-const AI_LEVELS: AiLevel[] = ['easy', 'medium'];
+const AI_LEVELS: AiLevel[] = ['easy', 'medium', 'hard'];
 const CONTRACTS: ContractId[] = ['MAX', 'MIN', 'HERC', 'DAME', 'ZANDAR', 'KRALJ_ZADNJI', 'LORA'];
 
 function aiName(room: Room): string {
@@ -122,7 +122,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
   });
 
   socket.on('room:create', (payload: { aiLevel?: string }, ack?: Ack) => {
-    const aiLevel = AI_LEVELS.includes(payload?.aiLevel as AiLevel) ? (payload!.aiLevel as AiLevel) : 'medium';
+    const aiLevel = AI_LEVELS.includes(payload?.aiLevel as AiLevel) ? (payload!.aiLevel as AiLevel) : 'hard';
     leaveCurrent();
     const room = createRoom(aiLevel);
     const seat = seatInto(room)!;
@@ -150,7 +150,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       return;
     }
     leaveCurrent();
-    const fresh = createRoom('medium');
+    const fresh = createRoom('hard');
     fresh.hostSeat = seatInto(fresh)!;
     ack?.({ code: fresh.code });
     broadcast(fresh);

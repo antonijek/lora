@@ -3,15 +3,19 @@
 import type {
   Card, CardId, ContractId, LoraOptions, LoraState, PlayerView, Position,
 } from './types.js';
-import { createDeck, makeRng, shuffle, sortHand } from './cards.js';
+import { createDeck, makeCard, makeRng, RANKS, shuffle, sortHand, SUITS } from './cards.js';
 import { DEFAULT_CONTRACTS, isDecidedEarly, scoreLayout, scoreTricks } from './contracts.js';
-import { emptyLayout, legalLayoutCards, legalTrickCards, trickWinner } from './rules.js';
+import { emptyLayout, legalLayoutCards, legalTrickCards, nextNeeded, trickWinner } from './rules.js';
 
 export const HAND_SIZE = 8;
 
 export class LoraError extends Error {}
 
 const next = (p: Position): Position => ((p + 1) % 4) as Position;
+
+function addMissing(list: CardId[], ids: CardId[]): void {
+  for (const id of ids) if (!list.includes(id)) list.push(id);
+}
 
 export class LoraGame {
   private state: LoraState;
@@ -39,6 +43,7 @@ export class LoraGame {
       lastTrick: null,
       layout: emptyLayout(),
       lastPass: null,
+      missing: [[], [], [], []],
       scores: [0, 0, 0, 0],
       history: [],
       winners: [],
@@ -49,6 +54,7 @@ export class LoraGame {
   static fromState(state: LoraState, opts: LoraOptions = {}): LoraGame {
     const g = new LoraGame({ ...opts, mode: state.mode });
     g.state = structuredClone(state);
+    g.state.missing ??= [[], [], [], []]; // snimci pre ovog polja
     return g;
   }
 
@@ -119,6 +125,11 @@ export class LoraGame {
     if (s.phase !== 'LAYOUT') throw new LoraError('Dalje se kaže samo u Lori');
     if (s.turn !== player) throw new LoraError('Nije vaš red');
     if (this.legalCards(player).length > 0) throw new LoraError('Imate kartu koju morate odigrati');
+    // sve karte koje su sada mogle na sto — ovaj igrač nijednu nema
+    for (const suit of SUITS) {
+      const need = nextNeeded(s.layout, suit);
+      if (need) addMissing(s.missing[player], [makeCard(need, suit).id]);
+    }
     s.lastPass = player;
     s.turn = next(player);
   }
@@ -154,6 +165,7 @@ export class LoraGame {
     s.lastTrick = null;
     s.layout = emptyLayout();
     s.lastPass = null;
+    s.missing = [[], [], [], []];
     if (s.mode === 'choice') s.phase = 'CHOOSING';
     else this.beginContract(this.available(s.chooser)[0]);
   }
@@ -168,6 +180,11 @@ export class LoraGame {
 
   private playToTrick(player: Position, card: Card): void {
     const s = this.state;
+    const lead = s.trick[0]?.card.suit;
+    if (lead && card.suit !== lead) {
+      // nije pratio boju → nema je
+      addMissing(s.missing[player], RANKS.map(r => makeCard(r, lead).id));
+    }
     s.trick.push({ player, card });
     if (s.trick.length < 4) {
       s.turn = next(player);
