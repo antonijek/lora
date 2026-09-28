@@ -11,7 +11,7 @@ await new Promise(r => server.stdout.once('data', r));
 const errors = [];
 const browser = await chromium.launch();
 try {
-  for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 1920, height: 880 }, { width: 1280, height: 720 }]) {
     const page = await browser.newPage({ viewport });
     page.on('pageerror', e => errors.push(String(e)));
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -39,9 +39,16 @@ try {
       });
       if (leak) errors.push(`[${viewport.width}px] tabla Lore vidljiva u drugoj igri`);
 
-      const chooseBtn = page.locator('#choose:not([hidden]) .options button');
+      const pickBtn = page.locator('.pick-btn');
+      if (await pickBtn.count() && !(await page.locator('.pick-menu').count())) {
+        await pickBtn.click();
+        continue;
+      }
+      const chooseBtn = page.locator('.pick-menu button');
       if (await chooseBtn.count()) {
         if (moves < 30) await page.screenshot({ path: `tools/screenshot-${viewport.width}-choose.png` });
+        const box = await page.locator('.pick-menu').boundingBox();
+        if (box && (box.y < 0 || box.y + box.height > viewport.height)) errors.push(`[${viewport.width}px] meni za izbor izlazi iz ekrana`);
         await chooseBtn.last().click();
         continue;
       }
@@ -61,6 +68,8 @@ try {
     const done = await page.evaluate(() => window.__lora.game.getState().phase);
     if (done !== 'MATCH_END') errors.push(`[${viewport.width}px] meč nije završen (faza ${done}, potezi ${moves})`);
 
+    const handBottom = await page.evaluate(() => document.getElementById('myHand').getBoundingClientRect().bottom);
+    if (handBottom > viewport.height + 1) errors.push(`[${viewport.width}x${viewport.height}] ruka ne staje u ekran (${handBottom}px)`);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     if (overflow) errors.push(`horizontalni scroll na ${viewport.width}px`);
     await page.close();

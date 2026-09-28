@@ -11,7 +11,9 @@ const AI_DELAY = FAST ? 0 : 650;
 const TRICK_PAUSE = FAST ? 0 : 1100;
 // v2: izbor igara (stari snimci nemaju chooser/used)
 const SAVE_KEY = 'lora.save.v2';
-const NAMES = ['Vi', 'Desno', 'Preko puta', 'Levo'];
+// Pozicije: 1 = desno, 2 = preko puta, 3 = levo (igra se suprotno od kazaljke).
+const NAMES = ['Vi', 'Milan', 'Jelena', 'Bora'];
+const COLORS = ['#2f7dd1', '#c0392b', '#8e44ad', '#d68910'];
 
 const $ = id => document.getElementById(id);
 
@@ -20,6 +22,7 @@ let level = 'medium';
 let timer = null;
 let busy = false;        // pauza dok se prikazuje završen štih
 let toastTimer = null;
+let pickerOpen = false;  // meni za izbor igre — otvara se klikom na dugme
 
 // ---------- čuvanje ----------
 
@@ -43,6 +46,7 @@ function load() {
 function newGame() {
   clearTimeout(timer);
   busy = false;
+  pickerOpen = false;
   game = new LoraGame();
   save();
   render();
@@ -68,73 +72,108 @@ function backImg() {
 }
 
 const rel = p => (p - ME + 4) % 4;
+const letter = suit => ({ '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' })[suit];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 // ---------- render ----------
 
 function render(showTrick = null) {
   const v = game.getPlayerView(ME);
 
-  const owner = v.chooser === ME ? 'vaša igra' : `igra: ${NAMES[v.chooser]}`;
-  $('contractName').textContent = v.contract ? CONTRACT_NAMES[v.contract] : 'Bira se igra…';
-  $('dealNo').textContent = `partija ${v.dealIndex + 1}/28 · ${owner} · deli: ${NAMES[v.dealer]}`;
+  $('contractName').textContent = v.contract ? CONTRACT_NAMES[v.contract] : 'Bira se igra';
+  $('dealInfo').innerHTML =
+    `Igra: <strong>${esc(NAMES[v.chooser])}</strong> · Delio: <strong>${esc(NAMES[v.dealer])}</strong> · partija ${v.dealIndex + 1}/28`;
   $('goal').textContent = v.contract ? CONTRACT_GOALS[v.contract] : '';
 
-  for (const p of [0, 1, 2, 3]) {
-    const el = document.querySelector(`.seat[data-seat="${rel(p)}"]`);
-    const acting = v.phase === 'TRICKS' || v.phase === 'LAYOUT' || v.phase === 'CHOOSING';
-    el.classList.toggle('active', !showTrick && v.turn === p && acting);
-    const tricks = v.phase === 'TRICKS' ? ` · štihova <b>${v.trickCounts[p]}</b>` : '';
-    el.innerHTML = `<div class="name">${NAMES[p]}</div><div class="info">poena <b>${v.scores[p]}</b>${tricks}</div>`
-      + `<div class="games">igre ${v.used[p].length}/${DEFAULT_CONTRACTS.length}</div>`;
-    if (p !== ME) {
-      const backs = document.createElement('div');
-      backs.className = 'backs';
-      backs.append(...Array.from({ length: v.handCounts[p] }, backImg));
-      el.appendChild(backs);
-    }
-    const pass = document.createElement('div');
-    pass.className = 'pass';
-    pass.textContent = v.lastPass === p ? 'dalje' : '';
-    el.appendChild(pass);
-  }
-
+  for (const p of [0, 1, 2, 3]) renderSeat(v, p, showTrick);
   renderCenter(v, showTrick);
   renderHand(v, showTrick);
+}
+
+function renderSeat(v, p, showTrick) {
+  const el = document.querySelector(`.seat[data-seat="${rel(p)}"]`);
+  const acting = v.phase === 'TRICKS' || v.phase === 'LAYOUT' || v.phase === 'CHOOSING';
+  const active = !showTrick && acting && v.turn === p;
+
+  const plate = document.createElement('div');
+  plate.className = 'plate' + (active ? ' active' : '');
+  const tricks = v.phase === 'TRICKS' ? ` · štihova <b>${v.trickCounts[p]}</b>` : '';
+  const cards = p !== ME ? ` · karata <b>${v.handCounts[p]}</b>` : '';
+  plate.innerHTML =
+    `<div class="avatar" style="background:${COLORS[p]}">${esc(NAMES[p][0])}</div>` +
+    `<div><div class="name">${esc(NAMES[p])}</div>` +
+    `<div class="sub">poena <b>${v.scores[p]}</b>${tricks}</div>` +
+    `<div class="sub">igre ${v.used[p].length}/${DEFAULT_CONTRACTS.length}${p !== ME ? cards : ''}</div></div>` +
+    (v.dealer === p ? '<span class="dealer-chip" title="Delio">D</span>' : '');
+
+  const chips = document.createElement('div');
+  chips.className = 'chips';
+  if (v.chooser === p && v.contract) chips.innerHTML += `<span class="chip">${esc(CONTRACT_NAMES[v.contract])}</span>`;
+  if (v.lastPass === p) chips.innerHTML += '<span class="chip pass">dalje</span>';
+
+  const parts = [plate];
+  if (chips.childElementCount) parts.push(chips);
+
+  if (p === ME) {
+    if (v.phase === 'CHOOSING' && v.chooser === ME) parts.push(picker(v));
+  } else {
+    const backs = document.createElement('div');
+    backs.className = 'backs';
+    backs.append(...Array.from({ length: v.handCounts[p] }, backImg));
+    parts.push(backs);
+  }
+  el.replaceChildren(...parts);
+}
+
+/** Padajući meni za izbor igre, uz vašu pločicu. */
+function picker(v) {
+  const wrap = document.createElement('div');
+  wrap.className = 'picker';
+  const btn = document.createElement('button');
+  btn.className = 'pick-btn' + (pickerOpen ? '' : ' pulse');
+  btn.textContent = pickerOpen ? 'Igra ▴' : 'Izaberi igru ▾';
+  btn.setAttribute('aria-expanded', String(pickerOpen));
+  btn.addEventListener('click', () => { pickerOpen = !pickerOpen; render(); });
+  wrap.appendChild(btn);
+
+  if (pickerOpen) {
+    const menu = document.createElement('div');
+    menu.className = 'pick-menu';
+    menu.setAttribute('role', 'menu');
+    for (const c of v.available) {
+      const b = document.createElement('button');
+      b.setAttribute('role', 'menuitem');
+      b.textContent = CONTRACT_NAMES[c];
+      b.title = CONTRACT_GOALS[c];
+      b.addEventListener('click', () => humanChoose(c));
+      menu.appendChild(b);
+    }
+    wrap.appendChild(menu);
+  }
+  return wrap;
 }
 
 function renderCenter(v, showTrick) {
   const trickEl = $('trick');
   const layoutEl = $('layout');
-  const chooseEl = $('choose');
+  const msgEl = $('centerMsg');
   const isChoosing = v.phase === 'CHOOSING';
   const isLayout = !isChoosing && v.contract === 'LORA';
-  chooseEl.hidden = !isChoosing;
-  if (!isChoosing) chooseEl.replaceChildren();
+
+  // kad vi birate, meni uz vaše ime je dovoljan — poruka na stolu bi se preklapala sa njim
+  msgEl.hidden = !isChoosing || v.chooser === ME;
   layoutEl.hidden = !isLayout;
-  if (!isLayout) layoutEl.replaceChildren();
   trickEl.hidden = isChoosing || isLayout;
+  if (!isLayout) layoutEl.replaceChildren();
 
   if (isChoosing) {
-    if (v.chooser !== ME) {
-      chooseEl.innerHTML = `<p class="waiting">${NAMES[v.chooser]} bira igru…</p>`;
-      return;
-    }
-    chooseEl.innerHTML = '<h2>Izaberite igru</h2><div class="options"></div>';
-    const opts = chooseEl.querySelector('.options');
-    for (const c of v.available) {
-      const b = document.createElement('button');
-      b.innerHTML = `<b>${CONTRACT_NAMES[c]}</b><small>${CONTRACT_GOALS[c]}</small>`;
-      b.addEventListener('click', () => humanChoose(c));
-      opts.appendChild(b);
-    }
+    msgEl.textContent = `${NAMES[v.chooser]} bira igru…`;
     return;
   }
 
   if (isLayout) {
-    const rows = [];
     const start = v.layout.startRank;
-    rows.push(`<div class="start">${start ? `Početni rang: <b>${start}</b>` : 'Prva karta određuje početni rang'}</div>`);
-    layoutEl.innerHTML = rows.join('');
+    layoutEl.innerHTML = `<div class="start">${start ? `Početni rang: <b>${start}</b>` : 'Prva karta određuje početni rang'}</div>`;
     for (const suit of SUITS) {
       const row = document.createElement('div');
       row.className = 'row';
@@ -165,10 +204,6 @@ function renderCenter(v, showTrick) {
     slot.appendChild(cardImg(pc.card));
     return slot;
   }));
-}
-
-function letter(suit) {
-  return { '♠': 'S', '♥': 'H', '♦': 'D', '♣': 'C' }[suit];
 }
 
 function renderHand(v, showTrick) {
@@ -214,6 +249,7 @@ function humanChoose(contract) {
     if (e instanceof LoraError) { toast(e.message); return; }
     throw e;
   }
+  pickerOpen = false;
   afterAction(before);
 }
 
@@ -262,10 +298,10 @@ function showDealEnd() {
   if (!last) return;
   $('dealEndTitle').textContent = s.phase === 'MATCH_END'
     ? (s.winners.includes(ME) ? 'Pobeda! 🎉' : `Pobednik: ${s.winners.map(p => NAMES[p]).join(', ')}`)
-    : `${CONTRACT_NAMES[last.contract]} (${last.chooser === ME ? 'vaša igra' : `igra: ${NAMES[last.chooser]}`}) — kraj`;
+    : `${CONTRACT_NAMES[last.contract]} (igra: ${NAMES[last.chooser]}) — kraj`;
   const min = Math.min(...s.scores);
   $('dealEndBody').innerHTML = [0, 1, 2, 3].map(p =>
-    `<tr><td>${NAMES[p]}</td><td>${fmt(last.points[p])}</td><td class="${s.scores[p] === min ? 'best' : ''}">${s.scores[p]}</td></tr>`).join('');
+    `<tr><td>${esc(NAMES[p])}</td><td>${fmt(last.points[p])}</td><td class="${s.scores[p] === min ? 'best' : ''}">${s.scores[p]}</td></tr>`).join('');
   $('nextDealBtn').textContent = s.phase === 'MATCH_END' ? 'Nova igra' : 'Sledeća igra';
   $('dealEnd').showModal();
 }
@@ -275,12 +311,12 @@ const fmt = n => (n > 0 ? `+${n}` : String(n));
 /** Svaki igrač ima svoju tabelu: 7 igara, odigrane sa rezultatima, ostale sive. */
 function renderSheet() {
   const s = game.getState();
-  const head = `<thead><tr><th>Igra</th>${NAMES.map(x => `<th>${x}</th>`).join('')}</tr></thead>`;
+  const head = `<thead><tr><th>Igra</th>${NAMES.map(x => `<th>${esc(x)}</th>`).join('')}</tr></thead>`;
   let html = '';
   for (const owner of [0, 1, 2, 3]) {
     const played = s.history.filter(h => h.chooser === owner);
     const title = owner === ME ? 'Vaša tabela' : `Tabela: ${NAMES[owner]}`;
-    html += `<h3>${title} (${played.length}/${DEFAULT_CONTRACTS.length})</h3><table class="result">${head}<tbody>`;
+    html += `<h3>${esc(title)} (${played.length}/${DEFAULT_CONTRACTS.length})</h3><table class="result">${head}<tbody>`;
     for (const contract of DEFAULT_CONTRACTS) {
       const h = played.find(x => x.contract === contract);
       const current = !h && s.chooser === owner && s.contract === contract && s.phase !== 'CHOOSING';
@@ -301,7 +337,7 @@ function toast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
 }
 
 $('nextDealBtn').addEventListener('click', () => {
@@ -319,6 +355,10 @@ $('menuBtn').addEventListener('click', () => { $('levelSel').value = level; $('m
 $('closeMenuBtn').addEventListener('click', () => $('menu').close());
 $('levelSel').addEventListener('change', e => { level = e.target.value; save(); });
 $('newGameBtn').addEventListener('click', () => { $('menu').close(); newGame(); });
+document.addEventListener('click', e => {
+  if (pickerOpen && !e.target.closest('.picker')) { pickerOpen = false; render(); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && pickerOpen && game.getState().phase === 'CHOOSING') { pickerOpen = false; render(); } });
 
 // ---------- start ----------
 

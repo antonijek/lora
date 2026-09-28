@@ -5,31 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Lora online — kartaška igra</title>
   <meta name="description" content="Lora (lore, lorum) online protiv računara — besplatno, bez registracije. Svih 7 igara: maksimum, minimum, herc, dame, žandar, kralj herc i lora.">
-  <meta name="theme-color" content="#0f4d2e">
+  <meta name="theme-color" content="#0d1f17">
   <link rel="stylesheet" href="./lora.css">
 </head>
 <body>
   <header class="topbar">
     <h1>Lora</h1>
-    <div class="contract"><b id="contractName"></b><span id="dealNo"></span></div>
+    <div class="contract">
+      <b id="contractName"></b>
+      <span id="dealInfo"></span>
+    </div>
     <div class="top-buttons">
-      <button id="sheetBtn" class="icon-btn" aria-label="Tabela">▦</button>
-      <button id="menuBtn" class="icon-btn" aria-label="Meni">☰</button>
+      <button id="sheetBtn" class="icon-btn" aria-label="Tabela" title="Tabela">▦</button>
+      <button id="menuBtn" class="icon-btn" aria-label="Meni" title="Meni">☰</button>
     </div>
   </header>
 
-  <p id="goal" class="goal"></p>
+  <main class="room">
+    <div class="table" aria-hidden="true"></div>
 
-  <main class="board">
     <section class="seat seat-top" data-seat="2"></section>
     <section class="seat seat-left" data-seat="3"></section>
+    <section class="seat seat-right" data-seat="1"></section>
+
     <section class="center">
+      <p id="goal" class="goal"></p>
       <div id="trick" class="trick"></div>
       <div id="layout" class="layout" hidden></div>
-      <div id="choose" class="choose" hidden></div>
+      <p id="centerMsg" class="center-msg" hidden></p>
       <div id="toast" class="toast" role="status"></div>
     </section>
-    <section class="seat seat-right" data-seat="1"></section>
+
     <section class="seat seat-me" data-seat="0"></section>
   </main>
 
@@ -45,8 +51,8 @@
     </label>
     <div class="dialog-buttons">
       <button id="newGameBtn" class="btn primary">Nova igra</button>
-      <a class="btn ghost" href="./pravila.html">Pravila</a>
-      <button id="closeMenuBtn" class="btn ghost">Zatvori</button>
+      <a class="btn" href="./pravila.html">Pravila</a>
+      <button id="closeMenuBtn" class="btn">Zatvori</button>
     </div>
   </dialog>
 
@@ -58,7 +64,7 @@
     </table>
     <div class="dialog-buttons">
       <button id="nextDealBtn" class="btn primary">Dalje</button>
-      <button id="dealSheetBtn" class="btn ghost">Tabela</button>
+      <button id="dealSheetBtn" class="btn">Tabela</button>
     </div>
   </dialog>
 
