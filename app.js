@@ -114,11 +114,8 @@ function render(showTrick = null) {
   $('contractName').textContent = v.contract ? CONTRACT_NAMES[v.contract] : 'Bira se igra';
   $('dealInfo').innerHTML =
     `Igra: <strong>${esc(names[v.chooser])}</strong> · Delio: <strong>${esc(names[v.dealer])}</strong> · partija ${v.dealIndex + 1}/28`;
-  let goal = v.contract ? esc(CONTRACT_GOALS[v.contract]) : '';
-  if (v.contract === 'LORA') {
-    goal += v.layout.startRank ? ` · počinje se od <b>${v.layout.startRank}</b>` : ' · prva karta određuje početni rang';
-  }
-  $('goal').innerHTML = goal;
+  // opis igre nije na stolu — vidi se kao podsetnik preko naziva u zaglavlju
+  $('contractName').title = v.contract ? CONTRACT_GOALS[v.contract] : '';
 
   for (const p of [0, 1, 2, 3]) renderSeat(c, p, rel(p), showTrick);
   renderCenter(c, rel, showTrick);

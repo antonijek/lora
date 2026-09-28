@@ -99,8 +99,6 @@ body {
 
 /* ---------- centar stola ---------- */
 .center { position: absolute; inset: 20% 22% 24%; z-index: 2; }
-.goal { position: absolute; top: -4px; left: 0; right: 0; margin: 0; text-align: center; font-size: .9rem; color: var(--muted); }
-.goal b { color: var(--accent); }
 .center-msg { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; text-align: center; font-size: 1.1rem; color: var(--ink); }
 
 .card-img { display: block; width: 100%; height: auto; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,.4); background: #fff; }
@@ -114,7 +112,7 @@ body {
 .trick .slot.winner .card-img { box-shadow: 0 0 0 3px var(--accent), 0 4px 12px rgba(0,0,0,.5); }
 
 .layout {
-  position: absolute; inset: 30px 0 0; display: flex; flex-direction: column;
+  position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 6px;
 }
 .layout .row { display: flex; align-items: center; width: calc(var(--mini-w) * 5.4); }
@@ -205,8 +203,7 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
   .seat-left .plate, .seat-right .plate { flex-direction: column; text-align: center; padding: 6px; }
   .seat-left .backs, .seat-right .backs { display: none; }
   .seat-top .backs img { width: calc(var(--back-w) * .8); }
-  .goal { font-size: .78rem; }
-  .layout { inset: 40px 0 0; gap: 4px; }
+  .layout { gap: 4px; }
   .trick .slot[data-rel="1"] { right: 2%; }
   .trick .slot[data-rel="3"] { left: 2%; }
   .hand .card { margin-left: calc(var(--card-w) * -.3); }
