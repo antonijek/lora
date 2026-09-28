@@ -132,7 +132,9 @@ body {
 
 /* ---------- ruka ---------- */
 .hand-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding: 4px 16px 10px; }
-.hand { display: flex; justify-content: center; }
+.hand { display: flex; justify-content: center; align-items: flex-end; }
+/* stalna visina (karta je 5:7) — inače se sto širi kad se ruka isprazni */
+.hand-row { min-height: calc(var(--card-w) * 1.4 + 14px); }
 .actions { justify-self: start; }
 .hand .card { width: var(--card-w); margin-left: calc(var(--card-w) * -.22); transition: transform .12s; flex: none; }
 .hand .card:first-child { margin-left: 0; }
@@ -207,10 +209,12 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
   .trick .slot[data-rel="1"] { right: 2%; }
   .trick .slot[data-rel="3"] { left: 2%; }
   .hand .card { margin-left: calc(var(--card-w) * -.3); }
-  .hand-row { grid-template-columns: 1fr; gap: 6px; }
+  .hand-row { grid-template-columns: 1fr; gap: 6px; position: relative; }
   .hand-row > .hand-side:first-child { display: none; }
-  .actions { order: -1; justify-self: center; }
+  /* dugme lebdi iznad karata — ne sme da menja visinu reda (pa ni stola) */
+  .actions { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); z-index: 6; }
   .actions:empty { display: none; }
+  .topbar { min-height: 58px; }
   .pick-menu { left: 50%; transform: translateX(-50%); }
 }
 
