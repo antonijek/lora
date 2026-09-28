@@ -88,6 +88,8 @@ function render(showTrick = null) {
   for (const p of [0, 1, 2, 3]) renderSeat(v, p, showTrick);
   renderCenter(v, showTrick);
   renderHand(v, showTrick);
+  // akcije (izbor igre) stoje desno od karata
+  $('actions').replaceChildren(...(v.phase === 'CHOOSING' && v.chooser === ME ? [picker(v)] : []));
 }
 
 function renderSeat(v, p, showTrick) {
@@ -114,9 +116,7 @@ function renderSeat(v, p, showTrick) {
   const parts = [plate];
   if (chips.childElementCount) parts.push(chips);
 
-  if (p === ME) {
-    if (v.phase === 'CHOOSING' && v.chooser === ME) parts.push(picker(v));
-  } else {
+  if (p !== ME) {
     const backs = document.createElement('div');
     backs.className = 'backs';
     backs.append(...Array.from({ length: v.handCounts[p] }, backImg));
