@@ -1,0 +1,16 @@
+{
+  "name": "lora",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Lora web app — dev tooling za pokretanje servera i browser smoke test",
+  "type": "module",
+  "scripts": {
+    "build": "cd engine && npm run build",
+    "test": "cd engine && npm test",
+    "serve": "node tools/serve.js",
+    "test:ui": "node tools/browser-smoke-test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

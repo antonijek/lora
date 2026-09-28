@@ -1,0 +1,5 @@
+node_modules/
+engine/dist/
+*.log
+.env
+tools/screenshot-*.png

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pravila Lore — kako se igra lora (lore, lorum)</title>
+  <meta name="description" content="Pravila kartaške igre Lora: 7 igara (maksimum, minimum, herc, dame, žandar tref, kralj herc i poslednji, lora), bodovanje i slaganje.">
+  <link rel="stylesheet" href="./lora.css">
+  <style>
+    body { display: block; }
+    .rules { max-width: 720px; margin: 0 auto; padding: 16px; line-height: 1.55; }
+    .rules table { border-collapse: collapse; margin: 8px 0 16px; width: 100%; }
+    .rules th, .rules td { border: 1px solid rgba(255,255,255,.25); padding: 6px 10px; text-align: left; vertical-align: top; }
+    .rules a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main class="rules">
+    <p><a href="./">← Nazad na igru</a></p>
+    <h1>Pravila Lore</h1>
+    <p>Lora (lore, lorum) je kartaška igra za 4 igrača. Svako igra za sebe. Igra se špilom od 32 karte (od sedmice do keca), a svaki igrač dobija po 8 karata. Cilj je skupiti <b>što manje poena</b>.</p>
+
+    <h2>Tok igre</h2>
+    <p>Svaki igrač jednom deli i tada se igra svih 7 igara redom, dakle ukupno 28 igara. Prvi igra igrač do delioca, a igra se u smeru suprotnom od kazaljke na satu.</p>
+
+    <h2>Štih</h2>
+    <p>U prvih šest igara igra se na štihove. Boja mora da se prati. Ko nema boju, baca bilo koju kartu. Štih nosi najjača karta u boji koja je prva odigrana (A, K, Q, J, 10, 9, 8, 7). Aduta nema.</p>
+
+    <h2>Sedam igara</h2>
+    <table>
+      <tr><th>Igra</th><th>Bodovanje</th></tr>
+      <tr><td>Maksimum</td><td>svaki štih −1</td></tr>
+      <tr><td>Minimum</td><td>svaki štih +1</td></tr>
+      <tr><td>Herc</td><td>svaki herc +1; ko uzme svih 8 hercova dobija −8</td></tr>
+      <tr><td>Dame</td><td>svaka dama +2</td></tr>
+      <tr><td>Žandar tref</td><td>+8 za onoga ko ga odnese</td></tr>
+      <tr><td>Kralj herc i poslednji</td><td>kralj herc +4, poslednji štih +4</td></tr>
+      <tr><td>Lora</td><td>ko se prvi oslobodi karata −8, ostali +1 za svaku kartu u ruci</td></tr>
+    </table>
+    <p>Kada su sve kaznene karte odnete (sve dame, žandar tref, svi hercovi), igra se završava odmah.</p>
+
+    <h2>Lora (slaganje)</h2>
+    <p>Prvi igrač odigra bilo koju kartu i njen rang postaje početni za sve četiri boje. Posle toga igrači redom dodaju kartu: ili otvaraju novu boju početnim rangom, ili nastavljaju započetu boju sledećom kartom. Posle keca dolazi sedmica. Na primer, ako se počne devetkom, niz je 9, 10, J, Q, K, A, 7, 8.</p>
+    <p>Ko nema kartu koja može, kaže „dalje“. Ko ima kartu koja može, mora da je odigra.</p>
+
+    <p class="note">Pravila Lore se razlikuju od kraja do kraja. Ovde je opisana najčešća varijanta.</p>
+    <p><a class="btn primary" href="./">Igraj Loru</a></p>
+  </main>
+</body>
+</html>

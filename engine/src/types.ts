@@ -1,0 +1,91 @@
+// SVI TIPOVI za Lora engine — ništa sem tipova.
+
+export type Suit = '♠' | '♥' | '♦' | '♣';
+export type Rank = '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A';
+
+// Id = rank + slovo boje ("10D", "AS") — isto kao SVG fajlovi u icons/cards.
+export type CardId = string;
+
+export interface Card {
+  id: CardId;
+  suit: Suit;
+  rank: Rank;
+}
+
+export type Position = 0 | 1 | 2 | 3;
+export const POSITIONS: readonly Position[] = [0, 1, 2, 3];
+
+/**
+ * Igre (ugovori) unutar Lore:
+ * - MAX: svaki štih −1
+ * - MIN: svaki štih +1
+ * - HERC: svaki herc +1; ko uzme svih 8 → −8
+ * - DAME: svaka dama +2
+ * - ZANDAR: žandar tref +8
+ * - KRALJ_ZADNJI: kralj herc +4, poslednji štih +4
+ * - LORA: slaganje; ko se prvi oslobodi karata −8, ostali +1 po karti u ruci
+ */
+export type ContractId = 'MAX' | 'MIN' | 'HERC' | 'DAME' | 'ZANDAR' | 'KRALJ_ZADNJI' | 'LORA';
+
+export interface LoraOptions {
+  seed?: number;
+  /** Redosled igara koje svaki delilac igra. Podrazumevano svih 7. */
+  contracts?: ContractId[];
+}
+
+export type Phase = 'TRICKS' | 'LAYOUT' | 'DEAL_END' | 'MATCH_END';
+
+export interface PlayedCard {
+  player: Position;
+  card: Card;
+}
+
+export interface CompletedTrick {
+  cards: PlayedCard[];
+  winner: Position;
+}
+
+export interface Layout {
+  /** Rang kojim počinje svaka boja (određuje ga prva odigrana karta). */
+  startRank: Rank | null;
+  /** Odigrane karte po boji, redom. */
+  piles: Record<Suit, Rank[]>;
+}
+
+export interface DealResult {
+  dealIndex: number;
+  dealer: Position;
+  contract: ContractId;
+  points: number[];
+}
+
+export interface LoraState {
+  phase: Phase;
+  /** 0..(4 × broj igara − 1) */
+  dealIndex: number;
+  dealer: Position;
+  contract: ContractId;
+  turn: Position;
+  hands: Card[][];
+  /** Karte koje je igrač odneo u štihovima ove partije. */
+  taken: Card[][];
+  trickCounts: number[];
+  trick: PlayedCard[];
+  trickNo: number;
+  lastTrick: CompletedTrick | null;
+  layout: Layout;
+  /** Ko je rekao "dalje" u slaganju (za UI). */
+  lastPass: Position | null;
+  scores: number[];
+  history: DealResult[];
+  /** Na kraju meča: igrač(i) sa najmanje poena. */
+  winners: Position[];
+}
+
+export interface PlayerView extends Omit<LoraState, 'hands'> {
+  me: Position;
+  hand: Card[];
+  handCounts: number[];
+  legal: CardId[];
+  mustPass: boolean;
+}
