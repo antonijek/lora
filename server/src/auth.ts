@@ -49,11 +49,14 @@ const ERRORS_SR: Record<string, string> = {
   'name is required': 'Unesite ime.',
 };
 
-async function forward(path: string, method: 'GET' | 'POST', body: unknown, authorization?: string) {
+async function forward(path: string, method: 'GET' | 'POST', body: unknown, authorization: string | undefined, clientIp: string) {
   const res = await fetch(`${AUTH_URL()}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
+      // Preferans ograničava pokušaje po IP-u (trust proxy 1) — bez ovoga bi svi
+      // igrači Lore delili JEDAN limit, jer bi svi zahtevi dolazili sa 127.0.0.1.
+      'X-Forwarded-For': clientIp,
       ...(authorization ? { Authorization: authorization } : {}),
     },
     body: method === 'POST' ? JSON.stringify(body ?? {}) : undefined,
@@ -68,7 +71,7 @@ export const authRouter = Router();
 function proxy(path: string, method: 'GET' | 'POST') {
   return async (req: import('express').Request, res: import('express').Response) => {
     try {
-      const { status, data } = await forward(path, method, req.body, req.headers.authorization);
+      const { status, data } = await forward(path, method, req.body, req.headers.authorization, req.ip ?? 'unknown');
       res.status(status).json(data);
     } catch (err) {
       console.error(`[auth proxy] ${path} failed:`, err);
