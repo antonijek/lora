@@ -83,7 +83,13 @@ function render(showTrick = null) {
   $('contractName').textContent = v.contract ? CONTRACT_NAMES[v.contract] : 'Bira se igra';
   $('dealInfo').innerHTML =
     `Igra: <strong>${esc(NAMES[v.chooser])}</strong> · Delio: <strong>${esc(NAMES[v.dealer])}</strong> · partija ${v.dealIndex + 1}/28`;
-  $('goal').textContent = v.contract ? CONTRACT_GOALS[v.contract] : '';
+  let goal = v.contract ? esc(CONTRACT_GOALS[v.contract]) : '';
+  if (v.contract === 'LORA') {
+    goal += v.layout.startRank
+      ? ` · počinje se od <b>${v.layout.startRank}</b>`
+      : ' · prva karta određuje početni rang';
+  }
+  $('goal').innerHTML = goal;
 
   for (const p of [0, 1, 2, 3]) renderSeat(v, p, showTrick);
   renderCenter(v, showTrick);
@@ -172,26 +178,22 @@ function renderCenter(v, showTrick) {
   }
 
   if (isLayout) {
-    const start = v.layout.startRank;
-    layoutEl.innerHTML = `<div class="start">${start ? `Početni rang: <b>${start}</b>` : 'Prva karta određuje početni rang'}</div>`;
-    for (const suit of SUITS) {
+    // po jedan red za svaku boju: odigrane karte + isprekidana "duh" karta za sledeću na redu
+    layoutEl.replaceChildren(...SUITS.map(suit => {
       const row = document.createElement('div');
       row.className = 'row';
-      const red = suit === '♥' || suit === '♦';
-      row.innerHTML = `<span class="suit ${red ? 'red' : ''}">${suit}</span>`;
-      const pile = document.createElement('div');
-      pile.className = 'pile';
-      for (const rank of v.layout.piles[suit]) pile.appendChild(cardImg({ id: rank + letter(suit), rank, suit }));
-      row.appendChild(pile);
-      const need = nextNeeded(v.layout, suit);
-      if (need) {
-        const s = document.createElement('span');
-        s.className = 'need';
-        s.textContent = `sledeća: ${need}`;
-        row.appendChild(s);
+      for (const rank of v.layout.piles[suit]) row.appendChild(cardImg({ id: rank + letter(suit), rank, suit }));
+      const need = v.layout.startRank ? nextNeeded(v.layout, suit) : null;
+      const complete = v.layout.piles[suit].length === 8;
+      if (!complete) {
+        const ghost = document.createElement('div');
+        ghost.className = 'ghost' + (suit === '♥' || suit === '♦' ? ' red' : '');
+        ghost.innerHTML = need ? `${need}<small>${suit}</small>` : suit;
+        ghost.title = need ? `Sledeća: ${need}${suit}` : 'Boja još nije otvorena';
+        row.appendChild(ghost);
       }
-      layoutEl.appendChild(row);
-    }
+      return row;
+    }));
     return;
   }
 
