@@ -16,7 +16,8 @@ const tmp = mkdtempSync(path.join(tmpdir(), 'lora-e2e-'));
 const SECRET = 'e2e-secret';
 const procs = [];
 const failures = [];
-const check = (cond, msg) => { if (!cond) { failures.push(msg); console.error('✖', msg); } };
+const log = m => console.log(new Date().toISOString().slice(11, 19), m);
+const check = (cond, msg) => { log('check: ' + msg); if (!cond) { failures.push(msg); console.error('✖', msg); } };
 
 function start(name, cwd, env) {
   return new Promise((resolve, reject) => {
@@ -47,6 +48,8 @@ function client(token) {
   return s;
 }
 const emit = (s, ev, payload) => new Promise(r => s.emit(ev, payload, r));
+// za događaje koji možda ne vraćaju odgovor (chat:send) — ne čekaj zauvek
+const emitT = (s, ev, payload) => new Promise(r => s.timeout(1500).emit(ev, payload, (err, res) => r(err ? { timeout: true } : res)));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const until = async (fn, ms = 20000, what = 'condition') => {
   const t0 = Date.now();
@@ -58,7 +61,7 @@ try {
   await start('auth', PREF_DIR, { PORT: String(AUTH_PORT), JWT_SECRET: SECRET, DB_PATH: path.join(tmp, 'pref.db') });
   await start('lora', path.resolve('.'), {
     PORT: String(LORA_PORT), JWT_SECRET: SECRET, AUTH_URL: `http://127.0.0.1:${AUTH_PORT}`, DB_PATH: path.join(tmp, 'lora.db'),
-    AI_DELAY_MS: '0', AFTER_TRICK_MS: '0', CHOOSE_DELAY_MS: '0', NEXT_DEAL_MS: '50', DISCONNECTED_GRACE_MS: '300',
+    AI_DELAY_MS: '0', AFTER_TRICK_MS: '0', CHOOSE_DELAY_MS: '0', NEXT_DEAL_MS: '50', DISCONNECTED_GRACE_MS: '300', WAITING_GRACE_MS: '1500',
   });
 
   // --- nalozi preko proxy-ja
@@ -84,6 +87,50 @@ try {
   check(/Invalid/.test(err), 'loš token → connect_error');
   bogus.close();
 
+  // --- pokvareni zahtevi ne smeju da obore server
+  {
+    const F = client((await api('/api/register', { email: 'f@test.rs', password: 'tajna123', name: 'Fuzz' })).data.token);
+    await new Promise(r => F.on('room:none', r));
+    const events = ['room:list', 'room:create', 'room:join', 'room:quick', 'room:addAi', 'room:removeAi', 'room:start',
+      'room:leave', 'room:leaveFinished', 'room:invite', 'game:action', 'game:ready', 'chat:send', 'presence:list', 'room:peek'];
+    const junk = [undefined, null, 5, 'x', [], {}, { code: {} }, { code: 'ZZZZZ' }, { seat: 99 }, { seat: -1 }, { userId: 'a' },
+      { type: 'play', cardId: {} }, { type: 'choose', contract: 'X' }, { type: 'pass' }, { text: 'a'.repeat(5000) }, { aiLevel: {} }];
+    for (const ev of events) for (const j of junk) {
+      F.emit(ev, j);                  // bez ack
+      F.emit(ev, j, 'nije-funkcija'); // "ack" koji nije funkcija
+      await emitT(F, ev, j);          // sa ack
+    }
+    // i usred sopstvene sobe
+    await emit(F, 'room:create', {});
+    for (const ev of events) for (const j of junk) await emitT(F, ev, j);
+    const health = await api('/api/health');
+    check(health.status === 200, 'server živ posle pokvarenih zahteva');
+    check(F.connected, 'klijent i dalje povezan posle pokvarenih zahteva');
+    await emit(F, 'room:leave');
+    F.close();
+  }
+
+  // (registracija je ograničena na 5 po satu po IP adresi — zato se nalozi ponovo koriste)
+  let tokW;
+  // --- osvežavanje stranice u čekaonici ne gubi sobu; dugo odsustvo oslobađa mesto
+  {
+    const tok = tokW = (await api('/api/register', { email: 'w@test.rs', password: 'tajna123', name: 'Vera' })).data.token;
+    let W = client(tok);
+    await new Promise(r => W.on('room:none', r));
+    const { code } = await emit(W, 'room:create', {});
+    W.close();
+    await wait(300);
+    W = client(tok);
+    await until(() => W.last?.code === code, 3000, 'posle osvežavanja ista soba');
+    check(W.last.hostSeat === W.last.mySeat, 'domaćin ostaje domaćin posle osvežavanja');
+    W.close();
+    await wait(2200);
+    W = client(tok);
+    const none = await new Promise(r => { W.on('room:none', () => r(true)); W.on('room:state', () => r(false)); });
+    check(none, 'posle dužeg odsustva mesto u čekaonici je oslobođeno');
+    W.close();
+  }
+
   // --- soba: Ana pravi, Boris ulazi, Ana dodaje AI i počinje
   const A = client(ra.data.token);
   const B = client(rb.data.token);
@@ -101,7 +148,7 @@ try {
   await until(() => A.last?.status === 'PLAYING' && B.last?.status === 'PLAYING', 5000, 'meč počeo');
   check(A.last.rated === true, 'dva čoveka → rangirano');
   check(A.last.seats.filter(s => s.kind === 'ai').length === 2, '2 AI mesta');
-  const late = client((await api('/api/register', { email: 'c@test.rs', password: 'tajna123', name: 'Ceca' })).data.token);
+  const late = client(tokW);
   await new Promise(r => late.on('room:none', r));
   const lateJoin = await emit(late, 'room:join', { code: created.code });
   check(/počeo/.test(lateJoin.error ?? ''), 'ne može se ući u meč koji je počeo');
@@ -169,6 +216,22 @@ try {
   const back = await emit(players[1], 'room:join', { code: r2.code });
   check(back.code === r2.code, 'igrač koji je napustio može da se vrati');
   await until(() => players[0].last?.seats[seatB].kind === 'human', 3000, 'mesto vraćeno čoveku');
+
+  // --- svi ljudi bez veze → meč stoji (AI ne igra umesto odsutnih)
+  {
+    const snap = players[0].last.view;
+    players.forEach(s => s.close());
+    await wait(1500); // AI kašnjenja su 0 — da nije pauze, meč bi odmakao
+    const A2 = client(ra.data.token);
+    await until(() => A2.last?.view, 5000, 'povratak posle pauze');
+    const v = A2.last.view;
+    check(v.dealIndex === snap.dealIndex && v.trickNo === snap.trickNo && v.hand.length === snap.hand.length,
+      `meč stoji dok niko nije povezan (${snap.dealIndex}/${snap.trickNo} → ${v.dealIndex}/${v.trickNo})`);
+    players[0] = A2;
+    const B3 = client(rb.data.token);
+    await until(() => B3.last?.view, 5000, 'Boris se vratio');
+    players[1] = B3;
+  }
 
   // --- restart servera usred meča (deploy): soba i mesto moraju preživeti
   const before = players[0].last;

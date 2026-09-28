@@ -478,6 +478,8 @@ $('nextDealBtn').addEventListener('click', () => {
   render();
   step();
 });
+// Esc ne sme da zatvori kraj partije — bez dugmeta "Dalje" igra bi se zaglavila
+$('dealEnd').addEventListener('cancel', e => e.preventDefault());
 $('dealSheetBtn').addEventListener('click', renderSheet);
 $('sheetBtn').addEventListener('click', renderSheet);
 $('closeSheetBtn').addEventListener('click', () => $('sheet').close());

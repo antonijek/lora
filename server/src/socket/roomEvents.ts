@@ -13,6 +13,8 @@ import { broadcast, buildRoomState, scheduleAi } from '../rooms/driver.js';
 
 type Ack = (response: Record<string, unknown>) => void;
 
+const WAITING_GRACE_MS = Number(process.env.WAITING_GRACE_MS ?? 30000);
+
 const AI_NAMES = ['Milan', 'Jelena', 'Bora', 'Vesna', 'Zoran', 'Maja'];
 const AI_LEVELS: AiLevel[] = ['easy', 'medium', 'hard'];
 const CONTRACTS: ContractId[] = ['MAX', 'MIN', 'HERC', 'DAME', 'ZANDAR', 'KRALJ_ZADNJI', 'LORA'];
@@ -243,9 +245,15 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     broadcast(cur.room);
   });
 
+  const chatTimes: number[] = [];
   socket.on('chat:send', (payload: { text?: string }) => {
     const cur = current();
     if (!cur || typeof payload?.text !== 'string' || !payload.text.trim()) return;
+    // najviše 5 poruka u 10 s po konekciji (zaštita od zasipanja)
+    const now = Date.now();
+    while (chatTimes.length && now - chatTimes[0] > 10_000) chatTimes.shift();
+    if (chatTimes.length >= 5) { socket.emit('game:error', 'Polako sa porukama.'); return; }
+    chatTimes.push(now);
     const msg: ChatMessage = { name, seat: cur.seat, text: payload.text.trim().slice(0, 300), ts: Date.now() };
     cur.room.chatLog.push(msg);
     if (cur.room.chatLog.length > CHAT_LOG_LIMIT) cur.room.chatLog.splice(0, cur.room.chatLog.length - CHAT_LOG_LIMIT);
@@ -258,8 +266,15 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     const { room, seat } = cur;
     room.sockets[seat] = null;
     if (status(room) === 'WAITING') {
-      // niko se ne čeka dok meč nije počeo — oslobodi mesto
-      leaveCurrent(false);
+      // Osvežavanje stranice ne sme da izbaci iz čekaonice (domaćin bi izgubio
+      // sobu) — mesto se oslobađa tek ako se ne vrati za 30 s.
+      broadcast(room);
+      setTimeout(() => {
+        const still = getRoom(room.code);
+        if (still && status(still) === 'WAITING' && still.sockets[seat] === null && still.seats[seat].userId === userId) {
+          leaveCurrent(false);
+        }
+      }, WAITING_GRACE_MS).unref();
       return;
     }
     if (status(room) === 'FINISHED' && !anyoneConnected(room)) { removeRoom(room); return; }

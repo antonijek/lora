@@ -70,12 +70,21 @@ function aiControls(room: Room, seat: Position): 'now' | 'grace' | 'no' {
   return 'no';
 }
 
+/**
+ * Niko od ljudi nije povezan (svi izgubili vezu, ili su svi napustili) — soba
+ * miruje: AI ne igra i partije ne kreću dok se neko ne vrati. Inače bi AI sam
+ * "odigrao" ostatak meča ljudima koji nisu tu (i promenio im rejting).
+ */
+export function isPaused(room: Room): boolean {
+  return !humanSeats(room).some(s => room.sockets[s] !== null);
+}
+
 export function scheduleAi(room: Room): void {
   if (room.aiTimer) {
     clearTimeout(room.aiTimer);
     room.aiTimer = null;
   }
-  if (!room.game) return;
+  if (!room.game || isPaused(room)) return;
   const st = room.game.getState();
   if (st.phase !== 'CHOOSING' && st.phase !== 'TRICKS' && st.phase !== 'LAYOUT') return;
   const seat = st.turn;
@@ -91,7 +100,7 @@ export function scheduleAi(room: Room): void {
   const expectDeal = st.dealIndex;
   room.aiTimer = setTimeout(() => {
     room.aiTimer = null;
-    if (!room.game) return;
+    if (!room.game || isPaused(room)) return;
     const now = room.game.getState();
     // stanje se promenilo u međuvremenu (čovek se vratio i odigrao, i sl.)
     if (now.turn !== expectTurn || now.dealIndex !== expectDeal || aiControls(room, expectTurn) === 'no') {
@@ -119,6 +128,10 @@ function scheduleNextDeal(room: Room): void {
     if (room.nextDealTimer) { clearTimeout(room.nextDealTimer); room.nextDealTimer = null; }
     return;
   }
+  if (isPaused(room)) {
+    if (room.nextDealTimer) { clearTimeout(room.nextDealTimer); room.nextDealTimer = null; }
+    return;
+  }
   const waitingFor = humanSeats(room).filter(s => room.sockets[s] !== null && !room.ready.has(s));
   if (waitingFor.length === 0) {
     startNextDeal(room);
@@ -128,7 +141,7 @@ function scheduleNextDeal(room: Room): void {
   const expectDeal = room.game.getState().dealIndex;
   room.nextDealTimer = setTimeout(() => {
     room.nextDealTimer = null;
-    if (room.game?.getState().phase === 'DEAL_END' && room.game.getState().dealIndex === expectDeal) startNextDeal(room);
+    if (!isPaused(room) && room.game?.getState().phase === 'DEAL_END' && room.game.getState().dealIndex === expectDeal) startNextDeal(room);
   }, NEXT_DEAL_MS);
 }
 
