@@ -37,7 +37,8 @@ body {
   color: var(--ink);
   background: radial-gradient(ellipse at 50% 40%, var(--room-2), var(--room) 70%);
   height: 100dvh; overflow: hidden;
-  display: grid; grid-template-rows: auto 1fr auto;
+  /* minmax(0, 1fr): bez ovoga se kolona širi prema najdužem tekstu, pa i sto */
+  display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr);
   -webkit-tap-highlight-color: transparent;
 }
 
