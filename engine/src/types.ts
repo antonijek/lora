@@ -27,13 +27,22 @@ export const POSITIONS: readonly Position[] = [0, 1, 2, 3];
  */
 export type ContractId = 'MAX' | 'MIN' | 'HERC' | 'DAME' | 'ZANDAR' | 'KRALJ_ZADNJI' | 'LORA';
 
+/**
+ * - 'choice' (podrazumevano): delilac se menja svake partije; igrač posle
+ *   delioca pogleda karte i bira jednu od SVOJIH preostalih igara, pa igra prvi.
+ *   Svaki igrač ima svoju tabelu sa svim igrama.
+ * - 'fixed': isti delilac igra sve igre redom, pa sledeći delilac.
+ */
+export type LoraMode = 'choice' | 'fixed';
+
 export interface LoraOptions {
   seed?: number;
-  /** Redosled igara koje svaki delilac igra. Podrazumevano svih 7. */
+  /** Skup (i za 'fixed' redosled) igara. Podrazumevano svih 7. */
   contracts?: ContractId[];
+  mode?: LoraMode;
 }
 
-export type Phase = 'TRICKS' | 'LAYOUT' | 'DEAL_END' | 'MATCH_END';
+export type Phase = 'CHOOSING' | 'TRICKS' | 'LAYOUT' | 'DEAL_END' | 'MATCH_END';
 
 export interface PlayedCard {
   player: Position;
@@ -55,16 +64,24 @@ export interface Layout {
 export interface DealResult {
   dealIndex: number;
   dealer: Position;
+  /** Čija je igra (u čiju tabelu se upisuje). */
+  chooser: Position;
   contract: ContractId;
   points: number[];
 }
 
 export interface LoraState {
+  mode: LoraMode;
   phase: Phase;
   /** 0..(4 × broj igara − 1) */
   dealIndex: number;
   dealer: Position;
-  contract: ContractId;
+  /** Igrač čija je igra u ovoj partiji (bira je i igra prvi). */
+  chooser: Position;
+  /** null dok igrač bira. */
+  contract: ContractId | null;
+  /** Igre koje je svaki igrač već odigrao iz svoje tabele. */
+  used: ContractId[][];
   turn: Position;
   hands: Card[][];
   /** Karte koje je igrač odneo u štihovima ove partije. */
@@ -88,4 +105,6 @@ export interface PlayerView extends Omit<LoraState, 'hands'> {
   handCounts: number[];
   legal: CardId[];
   mustPass: boolean;
+  /** Igre koje ja još imam da biram. */
+  available: ContractId[];
 }

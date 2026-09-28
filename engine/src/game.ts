@@ -1,4 +1,4 @@
-// Game klasa — orkestrira 28 partija (4 delioca × 7 igara).
+// Game klasa — orkestrira 28 partija (4 igrača × 7 igara).
 
 import type {
   Card, CardId, ContractId, LoraOptions, LoraState, PlayerView, Position,
@@ -23,10 +23,13 @@ export class LoraGame {
     if (this.contracts.length === 0) throw new LoraError('Mora postojati bar jedna igra');
     this.rng = makeRng(opts.seed);
     this.state = {
+      mode: opts.mode ?? 'choice',
       phase: 'TRICKS',
       dealIndex: -1,
       dealer: 3,
-      contract: this.contracts[0],
+      chooser: 0,
+      contract: null,
+      used: [[], [], [], []],
       turn: 0,
       hands: [[], [], [], []],
       taken: [[], [], [], []],
@@ -44,7 +47,7 @@ export class LoraGame {
   }
 
   static fromState(state: LoraState, opts: LoraOptions = {}): LoraGame {
-    const g = new LoraGame(opts);
+    const g = new LoraGame({ ...opts, mode: state.mode });
     g.state = structuredClone(state);
     return g;
   }
@@ -67,7 +70,23 @@ export class LoraGame {
       handCounts: hands.map(h => h.length),
       legal: legal.map(c => c.id),
       mustPass: this.state.phase === 'LAYOUT' && this.state.turn === me && legal.length === 0,
+      available: this.available(me),
     });
+  }
+
+  /** Igre koje igrač još nije odigrao iz svoje tabele. */
+  available(player: Position): ContractId[] {
+    const used = this.state.used[player];
+    return this.contracts.filter(c => !used.includes(c));
+  }
+
+  /** Izbor igre (samo u 'choice' modu, samo igrač čija je partija). */
+  choose(player: Position, contract: ContractId): void {
+    const s = this.state;
+    if (s.phase !== 'CHOOSING') throw new LoraError('Sada se ne bira igra');
+    if (s.chooser !== player) throw new LoraError('Ne birate vi igru');
+    if (!this.available(player).includes(contract)) throw new LoraError('Tu igru ste već odigrali');
+    this.beginContract(contract);
   }
 
   legalCards(player: Position): Card[] {
@@ -115,8 +134,16 @@ export class LoraGame {
     const s = this.state;
     s.dealIndex++;
     const n = this.contracts.length;
-    s.dealer = ((3 + Math.floor(s.dealIndex / n)) % 4) as Position;
-    s.contract = this.contracts[s.dealIndex % n];
+    if (s.mode === 'choice') {
+      // delilac se menja svake partije; bira i prvi igra igrač posle delioca
+      s.dealer = ((3 + s.dealIndex) % 4) as Position;
+      s.chooser = next(s.dealer);
+    } else {
+      // isti delilac igra svih n igara redom; njegova je tabela
+      s.dealer = ((3 + Math.floor(s.dealIndex / n)) % 4) as Position;
+      s.chooser = s.dealer;
+    }
+    s.contract = null;
     s.turn = next(s.dealer);
     const deck = shuffle(createDeck(), this.rng);
     s.hands = [0, 1, 2, 3].map(i => sortHand(deck.slice(i * HAND_SIZE, (i + 1) * HAND_SIZE)));
@@ -127,7 +154,16 @@ export class LoraGame {
     s.lastTrick = null;
     s.layout = emptyLayout();
     s.lastPass = null;
-    s.phase = s.contract === 'LORA' ? 'LAYOUT' : 'TRICKS';
+    if (s.mode === 'choice') s.phase = 'CHOOSING';
+    else this.beginContract(this.available(s.chooser)[0]);
+  }
+
+  private beginContract(contract: ContractId): void {
+    const s = this.state;
+    s.contract = contract;
+    s.used[s.chooser].push(contract);
+    s.turn = next(s.dealer);
+    s.phase = contract === 'LORA' ? 'LAYOUT' : 'TRICKS';
   }
 
   private playToTrick(player: Position, card: Card): void {
@@ -145,10 +181,11 @@ export class LoraGame {
     s.trickNo++;
     s.turn = winner;
 
+    const contract = s.contract!;
     const allPlayed = s.hands.every(h => h.length === 0);
-    if (allPlayed || isDecidedEarly(s.contract, s.taken)) {
+    if (allPlayed || isDecidedEarly(contract, s.taken)) {
       const lastTrickWinner = allPlayed ? winner : null;
-      this.endDeal(scoreTricks(s.contract, s.taken, s.trickCounts, lastTrickWinner));
+      this.endDeal(scoreTricks(contract, s.taken, s.trickCounts, lastTrickWinner));
     }
   }
 
@@ -166,7 +203,7 @@ export class LoraGame {
   private endDeal(points: number[]): void {
     const s = this.state;
     points.forEach((pt, p) => { s.scores[p] += pt; });
-    s.history.push({ dealIndex: s.dealIndex, dealer: s.dealer, contract: s.contract, points });
+    s.history.push({ dealIndex: s.dealIndex, dealer: s.dealer, chooser: s.chooser, contract: s.contract!, points });
     if (s.dealIndex + 1 >= this.totalDeals) {
       const min = Math.min(...s.scores);
       s.winners = ([0, 1, 2, 3] as Position[]).filter(p => s.scores[p] === min);

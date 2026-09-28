@@ -13,9 +13,20 @@ import { trickWinner } from './rules.js';
 
 export type AiLevel = 'easy' | 'medium';
 
-export type AiAction = { type: 'play'; cardId: string } | { type: 'pass' };
+export type AiAction =
+  | { type: 'play'; cardId: string }
+  | { type: 'pass' }
+  | { type: 'choose'; contract: ContractId };
 
 export function chooseAction(view: PlayerView, level: AiLevel = 'medium', rng: () => number = Math.random): AiAction {
+  if (view.phase === 'CHOOSING') {
+    const options = view.available;
+    if (options.length === 0) throw new Error('AI nema igru za izbor');
+    if (level === 'easy') return { type: 'choose', contract: options[Math.floor(rng() * options.length)] };
+    let best = options[0];
+    for (const c of options) if (estimateContract(c, view.hand) < estimateContract(best, view.hand)) best = c;
+    return { type: 'choose', contract: best };
+  }
   if (view.mustPass) return { type: 'pass' };
   const legal = view.hand.filter(c => view.legal.includes(c.id));
   if (legal.length === 0) throw new Error('AI nema legalan potez');
@@ -24,6 +35,51 @@ export function chooseAction(view: PlayerView, level: AiLevel = 'medium', rng: (
   }
   const card = view.phase === 'LAYOUT' ? chooseLayout(view, legal) : chooseTrick(view, legal);
   return { type: 'play', cardId: card.id };
+}
+
+// ---------------------------------------------------------------- izbor igre
+
+/**
+ * Gruba procena koliko ću poena dobiti u igri sa ovom rukom (manje = bolje).
+ * Konstante su prosečni rezultati po igraču; odstupanje zavisi od ruke.
+ */
+export function estimateContract(contract: ContractId, hand: readonly Card[]): number {
+  const high = (c: Card) => Math.max(0, rankIndex(c.rank) - 3); // J=1 Q=2 K=3 A=4
+  const strength = hand.reduce((s, c) => s + high(c), 0);         // prosek ≈ 10
+  const suit = (s: Suit) => hand.filter(c => c.suit === s);
+  const lowerIn = (c: Card) => hand.filter(x => x.suit === c.suit && rankIndex(x.rank) < rankIndex(c.rank)).length;
+
+  switch (contract) {
+    case 'MAX': return -2 - (strength - 10) * 0.3;
+    case 'MIN': return 2 + (strength - 10) * 0.3;
+    case 'HERC': {
+      const hs = suit('♥').reduce((s, c) => s + high(c), 0);   // prosek 2.5
+      return 2 + (hs - 2.5) * 0.5;
+    }
+    case 'DAME': {
+      // dama bez bar dve niže karte u boji je lako "uhvatiti"
+      return 2 + hand.filter(c => c.rank === 'Q').reduce((s, q) => s + (lowerIn(q) < 2 ? 1.4 : 0.4), 0) - 0.8;
+    }
+    case 'ZANDAR': {
+      const jc = hand.find(c => c.rank === 'J' && c.suit === '♣');
+      return jc ? (lowerIn(jc) < 2 ? 5 : 3) : 1.3;
+    }
+    case 'KRALJ_ZADNJI': {
+      const kh = hand.find(isKingOfHearts);
+      const aces = hand.filter(c => c.rank === 'A').length;
+      return (kh ? (lowerIn(kh) < 2 ? 5 : 3.5) : 1.2) + (aces - 1) * 0.3;
+    }
+    case 'LORA': {
+      const has = (r: Rank, s: Suit) => hand.some(c => c.rank === r && c.suit === s);
+      let bestRuns = 0;
+      for (const r of RANKS) {
+        let runs = 0;
+        for (const s of SUITS) runs += runLength(r, s, has);
+        bestRuns = Math.max(bestRuns, runs);
+      }
+      return 0.5 - (bestRuns - 5) * 0.6;
+    }
+  }
 }
 
 // ---------------------------------------------------------------- štihovi
@@ -38,7 +94,8 @@ function danger(contract: ContractId, c: Card): number {
 }
 
 function chooseTrick(view: PlayerView, legal: Card[]): Card {
-  const { contract, trick } = view;
+  const { trick } = view;
+  const contract = view.contract!;
   const wantTricks = contract === 'MAX';
   const isLastToPlay = trick.length === 3;
 
@@ -77,7 +134,7 @@ function chooseTrick(view: PlayerView, legal: Card[]): Card {
 }
 
 function lead(view: PlayerView, legal: Card[]): Card {
-  const { contract } = view;
+  const contract = view.contract!;
   if (contract === 'MAX') return highest(legal);
 
   // Izbegavanje: vodi najnižu kartu iz boje gde je ona najniža u odnosu na

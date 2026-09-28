@@ -6,18 +6,35 @@ import { makeRng } from '../src/cards.js';
 import { DEFAULT_CONTRACTS } from '../src/contracts.js';
 import type { Position } from '../src/types.js';
 
-test('početak: 4 × 8 karata, prva igra MAX, igra igrač posle delioca', () => {
+test('početak: 4 × 8 karata, igrač posle delioca bira igru', () => {
   const g = new LoraGame({ seed: 1 });
   const s = g.getState();
   assert.deepEqual(s.hands.map(h => h.length), [8, 8, 8, 8]);
   assert.equal(new Set(s.hands.flat().map(c => c.id)).size, 32);
-  assert.equal(s.contract, 'MAX');
+  assert.equal(s.phase, 'CHOOSING');
+  assert.equal(s.contract, null);
   assert.equal(s.dealer, 3);
+  assert.equal(s.chooser, 0);
   assert.equal(s.turn, 0);
+  assert.deepEqual(g.getPlayerView(0).available, [...DEFAULT_CONTRACTS]);
+});
+
+test('izbor igre: samo igrač čija je partija, samo neodigrana igra', () => {
+  const g = new LoraGame({ seed: 2 });
+  assert.throws(() => g.choose(1, 'MIN'), LoraError);
+  assert.throws(() => g.play(0, g.getState().hands[0][0].id), LoraError); // prvo se bira
+  g.choose(0, 'MIN');
+  const s = g.getState();
+  assert.equal(s.contract, 'MIN');
+  assert.equal(s.phase, 'TRICKS');
+  assert.equal(s.turn, 0); // ko bira, igra prvi
+  assert.deepEqual(s.used[0], ['MIN']);
+  assert.equal(g.getPlayerView(0).available.includes('MIN'), false);
 });
 
 test('nelegalni potezi se odbijaju', () => {
   const g = new LoraGame({ seed: 2 });
+  g.choose(0, 'MAX');
   const s = g.getState();
   assert.throws(() => g.play(1, s.hands[1][0].id), LoraError);
   assert.throws(() => g.play(0, s.hands[1][0].id), LoraError);
@@ -37,35 +54,44 @@ test('PlayerView ne otkriva tuđe karte', () => {
   for (const c of g.getState().hands[2]) assert.equal(json.includes(`"${c.id}"`), false);
 });
 
-test('redosled: svaki delilac odigra svih 7 igara', () => {
+test('choice: delilac se menja svake partije, svako odigra svaku svoju igru tačno jednom', () => {
   const g = new LoraGame({ seed: 4 });
-  const seq: string[] = [];
-  playOut(g, ['easy', 'easy', 'easy', 'easy'], 4, (s) => seq.push(`${s.dealer}:${s.contract}`));
-  assert.equal(seq.length, 28);
+  const s = playOut(g, ['medium', 'easy', 'medium', 'easy'], 4);
+  assert.equal(s.history.length, 28);
+  s.history.forEach((h, i) => {
+    assert.equal(h.dealer, (3 + i) % 4);
+    assert.equal(h.chooser, i % 4);
+  });
+  for (const p of [0, 1, 2, 3]) {
+    const mine = s.history.filter(h => h.chooser === p).map(h => h.contract).sort();
+    assert.deepEqual(mine, [...DEFAULT_CONTRACTS].sort());
+  }
+});
+
+test('fixed: isti delilac igra svih 7 igara redom', () => {
+  const g = new LoraGame({ seed: 4, mode: 'fixed' });
+  const s = playOut(g, ['easy', 'easy', 'easy', 'easy'], 4);
+  const seq = s.history.map(h => `${h.dealer}:${h.contract}`);
   for (let d = 0; d < 4; d++) {
     const dealer = (3 + d) % 4;
     assert.deepEqual(seq.slice(d * 7, d * 7 + 7), DEFAULT_CONTRACTS.map(c => `${dealer}:${c}`));
   }
 });
 
-function playOut(
-  g: LoraGame, levels: AiLevel[], seed: number,
-  onDealStart?: (s: ReturnType<LoraGame['getState']>) => void,
-) {
+function playOut(g: LoraGame, levels: AiLevel[], seed: number) {
   const rng = makeRng(seed);
   let guard = 0;
-  onDealStart?.(g.getState());
   while (g.getState().phase !== 'MATCH_END') {
     const s = g.getState();
     if (s.phase === 'DEAL_END') {
       checkDeal(s);
       g.nextDeal();
-      onDealStart?.(g.getState());
       continue;
     }
     const p = s.turn as Position;
     const a = chooseAction(g.getPlayerView(p), levels[p], rng);
     if (a.type === 'pass') g.pass(p);
+    else if (a.type === 'choose') g.choose(p, a.contract);
     else g.play(p, a.cardId);
     if (++guard > 5000) throw new Error('meč se zaglavio');
   }

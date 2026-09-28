@@ -11,6 +11,7 @@
   --dialog-ink: #1b1b1b;
   --card-w: clamp(48px, 12.5vw, 84px);
   --mini-w: clamp(30px, 7vw, 44px);
+  --back-w: clamp(34px, 9vw, 58px);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -23,6 +24,8 @@
 }
 
 * { box-sizing: border-box; }
+/* `hidden` mora da pobedi `display: flex` iz klasa (inače ostaju karte iz Lore na stolu) */
+[hidden] { display: none !important; }
 html, body { margin: 0; min-height: 100%; }
 body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -61,8 +64,25 @@ body {
 .seat.active .name { color: var(--accent); }
 .seat.active .name::before { content: "▸ "; }
 .seat .backs { display: flex; }
-.seat .backs img { width: calc(var(--mini-w) * .7); margin-left: calc(var(--mini-w) * -.45); border-radius: 3px; }
+.seat .backs img { width: var(--back-w); margin-left: calc(var(--back-w) * -.72); border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
 .seat .backs img:first-child { margin-left: 0; }
+.seat-left .backs, .seat-right .backs { flex-direction: column; }
+.seat-left .backs img, .seat-right .backs img { margin-left: 0; margin-top: calc(var(--back-w) * -1.18); }
+.seat-left .backs img:first-child, .seat-right .backs img:first-child { margin-top: 0; }
+.seat .games { font-size: .72rem; color: var(--muted); }
+
+/* izbor igre */
+.choose { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 8px; }
+.choose h2 { margin: 0; font-size: 1.05rem; }
+.choose .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; width: 100%; max-width: 480px; }
+.choose button {
+  font: inherit; text-align: left; padding: 8px 10px; border-radius: 10px; cursor: pointer;
+  background: rgba(255,255,255,.1); color: var(--ink); border: 1px solid rgba(255,255,255,.25);
+}
+.choose button:hover, .choose button:focus-visible { background: rgba(255,255,255,.2); outline: none; }
+.choose button b { display: block; color: var(--accent); }
+.choose button small { color: var(--muted); font-size: .72rem; line-height: 1.25; display: block; }
+.choose .waiting { color: var(--muted); }
 .seat .pass { color: var(--accent); font-weight: 700; font-size: .8rem; min-height: 1em; }
 
 .card-img { display: block; width: 100%; height: auto; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,.35); background: #fff; }
@@ -121,10 +141,15 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
 .result td.best { color: #1d8a4a; font-weight: 700; }
 .sheet-dialog { width: min(560px, calc(100vw - 32px)); }
 .sheet-scroll { max-height: 60vh; overflow: auto; }
-.sheet td.sep { border-top: 2px solid rgba(127,127,127,.5); }
+.sheet h3 { margin: 14px 0 4px; font-size: .95rem; }
+.sheet h3:first-child { margin-top: 0; }
 .sheet .pending td { opacity: .35; }
+.sheet .mine { font-weight: 700; }
 
 @media (max-width: 480px) {
   .board { grid-template-columns: 58px minmax(0, 1fr) 58px; padding: 4px 8px; }
   .seat { font-size: .75rem; }
+  .choose .options { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .choose button { padding: 8px; }
+  .choose button small { display: none; }
 }

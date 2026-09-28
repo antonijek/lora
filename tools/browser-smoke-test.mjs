@@ -31,6 +31,20 @@ try {
         await page.click('#nextDealBtn');
         continue;
       }
+      // tabla od Lore ne sme da bude vidljiva u drugim igrama (bag: mešale se igre)
+      const leak = await page.evaluate(() => {
+        const s = window.__lora.game.getState();
+        const shown = getComputedStyle(document.getElementById('layout')).display !== 'none';
+        return s.contract !== 'LORA' && shown;
+      });
+      if (leak) errors.push(`[${viewport.width}px] tabla Lore vidljiva u drugoj igri`);
+
+      const chooseBtn = page.locator('#choose:not([hidden]) .options button');
+      if (await chooseBtn.count()) {
+        if (moves < 30) await page.screenshot({ path: `tools/screenshot-${viewport.width}-choose.png` });
+        await chooseBtn.last().click();
+        continue;
+      }
       const legal = page.locator('#myHand .card.legal');
       if (await legal.count()) {
         if (!shotLayout && (await page.textContent('#contractName')) === 'Lora' && moves > 0) {

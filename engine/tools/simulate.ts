@@ -21,7 +21,7 @@ for (let seed = 1; seed <= n; seed++) {
     if (s.phase === 'DEAL_END') { g.nextDeal(); continue; }
     const p = s.turn as Position;
     const a = chooseAction(g.getPlayerView(p), levels[p], rng);
-    if (a.type === 'pass') g.pass(p); else g.play(p, a.cardId);
+    if (a.type === 'pass') g.pass(p); else if (a.type === 'choose') g.choose(p, a.contract); else g.play(p, a.cardId);
   }
   const s = g.getState();
   s.scores.forEach((sc, p) => { sum[levels[p]] += sc / 2; });

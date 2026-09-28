@@ -9,7 +9,8 @@ const ME = 0;
 const FAST = new URLSearchParams(location.search).has('fast');
 const AI_DELAY = FAST ? 0 : 650;
 const TRICK_PAUSE = FAST ? 0 : 1100;
-const SAVE_KEY = 'lora.save.v1';
+// v2: izbor igara (stari snimci nemaju chooser/used)
+const SAVE_KEY = 'lora.save.v2';
 const NAMES = ['Vi', 'Desno', 'Preko puta', 'Levo'];
 
 const $ = id => document.getElementById(id);
@@ -73,15 +74,18 @@ const rel = p => (p - ME + 4) % 4;
 function render(showTrick = null) {
   const v = game.getPlayerView(ME);
 
-  $('contractName').textContent = CONTRACT_NAMES[v.contract];
-  $('dealNo').textContent = `igra ${v.dealIndex + 1}/28 · deli: ${NAMES[v.dealer]}`;
-  $('goal').textContent = CONTRACT_GOALS[v.contract];
+  const owner = v.chooser === ME ? 'vaša igra' : `igra: ${NAMES[v.chooser]}`;
+  $('contractName').textContent = v.contract ? CONTRACT_NAMES[v.contract] : 'Bira se igra…';
+  $('dealNo').textContent = `partija ${v.dealIndex + 1}/28 · ${owner} · deli: ${NAMES[v.dealer]}`;
+  $('goal').textContent = v.contract ? CONTRACT_GOALS[v.contract] : '';
 
   for (const p of [0, 1, 2, 3]) {
     const el = document.querySelector(`.seat[data-seat="${rel(p)}"]`);
-    el.classList.toggle('active', !showTrick && v.turn === p && (v.phase === 'TRICKS' || v.phase === 'LAYOUT'));
+    const acting = v.phase === 'TRICKS' || v.phase === 'LAYOUT' || v.phase === 'CHOOSING';
+    el.classList.toggle('active', !showTrick && v.turn === p && acting);
     const tricks = v.phase === 'TRICKS' ? ` · štihova <b>${v.trickCounts[p]}</b>` : '';
-    el.innerHTML = `<div class="name">${NAMES[p]}</div><div class="info">poena <b>${v.scores[p]}</b>${tricks}</div>`;
+    el.innerHTML = `<div class="name">${NAMES[p]}</div><div class="info">poena <b>${v.scores[p]}</b>${tricks}</div>`
+      + `<div class="games">igre ${v.used[p].length}/${DEFAULT_CONTRACTS.length}</div>`;
     if (p !== ME) {
       const backs = document.createElement('div');
       backs.className = 'backs';
@@ -101,9 +105,30 @@ function render(showTrick = null) {
 function renderCenter(v, showTrick) {
   const trickEl = $('trick');
   const layoutEl = $('layout');
-  const isLayout = v.contract === 'LORA';
+  const chooseEl = $('choose');
+  const isChoosing = v.phase === 'CHOOSING';
+  const isLayout = !isChoosing && v.contract === 'LORA';
+  chooseEl.hidden = !isChoosing;
+  if (!isChoosing) chooseEl.replaceChildren();
   layoutEl.hidden = !isLayout;
-  trickEl.hidden = isLayout;
+  if (!isLayout) layoutEl.replaceChildren();
+  trickEl.hidden = isChoosing || isLayout;
+
+  if (isChoosing) {
+    if (v.chooser !== ME) {
+      chooseEl.innerHTML = `<p class="waiting">${NAMES[v.chooser]} bira igru…</p>`;
+      return;
+    }
+    chooseEl.innerHTML = '<h2>Izaberite igru</h2><div class="options"></div>';
+    const opts = chooseEl.querySelector('.options');
+    for (const c of v.available) {
+      const b = document.createElement('button');
+      b.innerHTML = `<b>${CONTRACT_NAMES[c]}</b><small>${CONTRACT_GOALS[c]}</small>`;
+      b.addEventListener('click', () => humanChoose(c));
+      opts.appendChild(b);
+    }
+    return;
+  }
 
   if (isLayout) {
     const rows = [];
@@ -180,6 +205,18 @@ function humanPlay(cardId) {
   afterAction(before);
 }
 
+function humanChoose(contract) {
+  if (busy) return;
+  const before = game.getState();
+  try {
+    game.choose(ME, contract);
+  } catch (e) {
+    if (e instanceof LoraError) { toast(e.message); return; }
+    throw e;
+  }
+  afterAction(before);
+}
+
 function afterAction(before) {
   save();
   const s = game.getState();
@@ -209,9 +246,12 @@ function step() {
     const before = game.getState();
     const a = chooseAction(game.getPlayerView(before.turn), level);
     if (a.type === 'pass') game.pass(before.turn);
-    else game.play(before.turn, a.cardId);
+    else if (a.type === 'choose') {
+      game.choose(before.turn, a.contract);
+      toast(`${NAMES[before.turn]} bira: ${CONTRACT_NAMES[a.contract]}`);
+    } else game.play(before.turn, a.cardId);
     afterAction(before);
-  }, AI_DELAY);
+  }, s.phase === 'CHOOSING' ? AI_DELAY * 2 : AI_DELAY);
 }
 
 // ---------- kraj partije / tabela ----------
@@ -222,7 +262,7 @@ function showDealEnd() {
   if (!last) return;
   $('dealEndTitle').textContent = s.phase === 'MATCH_END'
     ? (s.winners.includes(ME) ? 'Pobeda! 🎉' : `Pobednik: ${s.winners.map(p => NAMES[p]).join(', ')}`)
-    : `${CONTRACT_NAMES[last.contract]} — kraj`;
+    : `${CONTRACT_NAMES[last.contract]} (${last.chooser === ME ? 'vaša igra' : `igra: ${NAMES[last.chooser]}`}) — kraj`;
   const min = Math.min(...s.scores);
   $('dealEndBody').innerHTML = [0, 1, 2, 3].map(p =>
     `<tr><td>${NAMES[p]}</td><td>${fmt(last.points[p])}</td><td class="${s.scores[p] === min ? 'best' : ''}">${s.scores[p]}</td></tr>`).join('');
@@ -232,19 +272,25 @@ function showDealEnd() {
 
 const fmt = n => (n > 0 ? `+${n}` : String(n));
 
+/** Svaki igrač ima svoju tabelu: 7 igara, odigrane sa rezultatima, ostale sive. */
 function renderSheet() {
   const s = game.getState();
-  const n = DEFAULT_CONTRACTS.length;
-  let html = `<thead><tr><th>Igra</th>${NAMES.map(x => `<th>${x}</th>`).join('')}</tr></thead><tbody>`;
-  for (let i = 0; i < n * 4; i++) {
-    const h = s.history[i];
-    const contract = DEFAULT_CONTRACTS[i % n];
-    const cls = [i % n === 0 && i > 0 ? 'sep' : '', h ? '' : 'pending'].join(' ');
-    const cells = [0, 1, 2, 3].map(p => `<td class="${i % n === 0 && i > 0 ? 'sep' : ''}">${h ? fmt(h.points[p]) : ''}</td>`).join('');
-    html += `<tr class="${h ? '' : 'pending'}"><td class="${cls}">${CONTRACT_NAMES[contract]}</td>${cells}</tr>`;
+  const head = `<thead><tr><th>Igra</th>${NAMES.map(x => `<th>${x}</th>`).join('')}</tr></thead>`;
+  let html = '';
+  for (const owner of [0, 1, 2, 3]) {
+    const played = s.history.filter(h => h.chooser === owner);
+    const title = owner === ME ? 'Vaša tabela' : `Tabela: ${NAMES[owner]}`;
+    html += `<h3>${title} (${played.length}/${DEFAULT_CONTRACTS.length})</h3><table class="result">${head}<tbody>`;
+    for (const contract of DEFAULT_CONTRACTS) {
+      const h = played.find(x => x.contract === contract);
+      const current = !h && s.chooser === owner && s.contract === contract && s.phase !== 'CHOOSING';
+      const cells = [0, 1, 2, 3].map(p => `<td class="${p === owner ? 'mine' : ''}">${h ? fmt(h.points[p]) : current ? '…' : ''}</td>`).join('');
+      html += `<tr class="${h || current ? '' : 'pending'}"><td>${CONTRACT_NAMES[contract]}${current ? ' (u toku)' : ''}</td>${cells}</tr>`;
+    }
+    html += '</tbody></table>';
   }
-  html += `<tr class="total"><td>Ukupno</td>${s.scores.map(x => `<td>${x}</td>`).join('')}</tr></tbody>`;
-  $('sheetTable').innerHTML = html;
+  html += `<table class="result"><tbody><tr class="total"><td>Ukupno</td>${s.scores.map(x => `<td>${x}</td>`).join('')}</tr></tbody></table>`;
+  $('sheetBody').innerHTML = html;
   $('sheet').showModal();
 }
 
