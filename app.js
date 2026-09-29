@@ -491,7 +491,8 @@ $('menuBtn').addEventListener('click', () => {
   $('homeBtn').hidden = isOnline && onlineState?.status === 'PLAYING';
   $('menu').showModal();
 });
-$('closeMenuBtn').addEventListener('click', () => $('menu').close());
+// klik pored menija (na pozadinu) ga zatvara
+$('menu').addEventListener('click', e => { if (e.target === $('menu')) $('menu').close(); });
 $('newGameBtn').addEventListener('click', () => { $('menu').close(); newLocalGame(); });
 $('homeBtn').addEventListener('click', () => {
   $('menu').close();

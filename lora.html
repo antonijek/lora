@@ -16,9 +16,9 @@
     </div>
     <div class="contract"><b id="contractName"></b></div>
     <div class="top-buttons">
-      <button id="chatBtn" class="icon-btn" aria-label="Chat" title="Chat" hidden>💬<span id="chatBadge" class="badge" hidden></span></button>
-      <button id="sheetBtn" class="icon-btn" aria-label="Tabela" title="Tabela">▦</button>
-      <button id="menuBtn" class="icon-btn" aria-label="Meni" title="Meni">☰</button>
+      <button id="chatBtn" class="icon-btn" aria-label="Chat" title="Chat" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><span id="chatBadge" class="badge" hidden></span></button>
+      <button id="sheetBtn" class="icon-btn" aria-label="Tabela" title="Tabela"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M4 15h16M10 4v16"/></svg></button>
+      <button id="menuBtn" class="icon-btn" aria-label="Meni" title="Meni"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     </div>
   </header>
 
@@ -45,15 +45,13 @@
     <div id="actions" class="hand-side actions"></div>
   </footer>
 
-  <dialog id="menu">
-    <h2>Meni</h2>
-    <div class="dialog-buttons">
-      <button id="newGameBtn" class="btn primary">Nova igra</button>
-      <button id="leaveMatchBtn" class="btn" hidden>Napusti meč</button>
-      <button id="homeBtn" class="btn">Početna</button>
-      <a class="btn" href="./pravila.html">Pravila</a>
-      <button id="closeMenuBtn" class="btn">Zatvori</button>
-    </div>
+  <dialog id="menu" class="menu-pop" aria-label="Meni">
+    <nav class="menu-list">
+      <button id="newGameBtn" class="menu-item"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg>Nova igra</button>
+      <button id="leaveMatchBtn" class="menu-item danger" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/></svg>Napusti meč</button>
+      <button id="homeBtn" class="menu-item"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7M6 9.5V20h12V9.5"/></svg>Početna</button>
+      <a class="menu-item" href="./pravila.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h10l4 4v12H5zM9 12h6M9 16h6"/></svg>Pravila</a>
+    </nav>
   </dialog>
 
   <dialog id="dealEnd">

@@ -54,7 +54,19 @@ body {
 .contract b { color: var(--accent); font-size: 1.45rem; letter-spacing: .02em; cursor: help; }
 .top-buttons { justify-self: end; }
 .top-buttons { display: flex; }
-.icon-btn { background: none; border: 0; color: var(--ink); font-size: 1.4rem; cursor: pointer; padding: 4px 8px; }
+.top-buttons { gap: 2px; }
+.icon-btn { position: relative; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; background: none; border: 0; border-radius: 10px; color: var(--ink); cursor: pointer; }
+.icon-btn:hover, .icon-btn:focus-visible { background: rgba(255,255,255,.08); }
+.icon-btn svg, .menu-item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* meni: padajući spisak ispod hamburgera, u boji stola */
+dialog.menu-pop { position: fixed; inset: 52px 12px auto auto; margin: 0; width: 210px; padding: 6px; background: #10251b; color: var(--ink); border: 1px solid var(--plate-edge); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,.55); }
+dialog.menu-pop::backdrop { background: rgba(0,0,0,.3); }
+.menu-list { display: flex; flex-direction: column; }
+.menu-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; background: none; border: 0; border-radius: 8px; color: var(--ink); font: inherit; font-size: 1rem; text-align: left; text-decoration: none; cursor: pointer; }
+.menu-item:hover, .menu-item:focus-visible { background: rgba(255,255,255,.08); outline: none; }
+.menu-item svg { flex: none; width: 20px; height: 20px; color: var(--accent); }
+.menu-item.danger svg { color: #e98a8a; }
 
 /* ---------- sto ---------- */
 .room { position: relative; min-height: 0; }
