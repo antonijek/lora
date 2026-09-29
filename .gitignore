@@ -3,6 +3,7 @@ engine/dist/
 *.log
 .env
 tools/screenshot-*.png
+tools/shot-*.png
 server/dist/
 server/*.db
 server/.env

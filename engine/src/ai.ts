@@ -1,6 +1,7 @@
 // AI za Loru — radi SAMO nad PlayerView (ne vidi tuđe karte).
 //
-// Nivoi:
+// Nivoi (igra i server koriste samo hard; easy i medium ostaju kao
+// protivnici za poređenje u engine/tools i kao politika simulacije):
 //  - easy:   nasumičan legalan potez / nasumična igra
 //  - medium: heuristike (brze, "ljudska pravila palca")
 //  - hard:   Monte Carlo pretraga — za svaki mogući potez AI mnogo puta

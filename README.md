@@ -6,7 +6,7 @@ Web aplikacija za Loru (lore, lorum): vi i 3 računara. Isti principi kao
 ## Status
 - ✅ Engine: 28 partija. Podrazumevani mod je `choice`: delilac se menja svake partije, a igrač posle delioca bira jednu od svojih preostalih igara i igra prvi, pa svako ima svoju tabelu. U modu `fixed` isti delilac igra svih 7 igara redom. Tu su i štih sa obaveznim praćenjem boje, slaganje (Lora), rani kraj kad su sve kaznene karte odnete i podesiv skup igara (`contracts`). Testovi: `npm test`
 - ✅ AI bira igru prema ruci: jaka ruka → maksimum, a izbegava igru u kojoj drži nezaštićenu damu, žandara ili kralja herc
-- ✅ AI: `easy` (nasumično) i `medium` (heuristike po igri). U 200 mečeva medium ima prosečno 12,6 poena, a easy 44,2, i bolji je u svakoj igri (`npm run sim` u `engine/`)
+- ✅ AI: jedan nivo, Monte Carlo pretraga (300 uzoraka po potezu). Za svaki potez nasumično deli karte koje ne vidi, poštujući ono što se zna, i igra partiju do kraja heuristikama. Nivoi `easy` i `medium` ostali su samo za poređenje (`npm run sim` u `engine/`, `engine/tools/duel.ts`)
 - ✅ UI: sto za 4 igrača, prikaz završenog štiha, slaganje po bojama, tabela svih 28 igara, čuvanje partije
 - ✅ Karte: CC0 SVG set iz preferansa (lora koristi istih 32 karte)
 - ✅ **Online** (`server/`, dizajn u [docs/BACKEND.md](docs/BACKEND.md)): prijava istim nalogom kao Preferans, lobi, brza igra, sobe sa kodom/linkom, pozivi, chat, AI popunjava prazna mesta i igra za igrače bez veze, rejting (ELO, samo sa ≥2 čoveka), sobe preživljavaju restart
