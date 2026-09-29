@@ -487,6 +487,8 @@ $('menuBtn').addEventListener('click', () => {
   const isOnline = mode === 'online';
   $('newGameBtn').hidden = isOnline;
   $('leaveMatchBtn').hidden = !isOnline;
+  // iz online meča u toku izlazi se samo preko "Napusti meč" (showLobby tada ne radi ništa)
+  $('homeBtn').hidden = isOnline && onlineState?.status === 'PLAYING';
   $('menu').showModal();
 });
 $('closeMenuBtn').addEventListener('click', () => $('menu').close());
