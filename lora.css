@@ -91,6 +91,8 @@ body {
   background: #fff; color: #111; font-weight: 800; font-size: .85rem; display: grid; place-items: center;
   border: 2px solid var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,.4);
 }
+/* desni igrač: oznaka delioca sa unutrašnje strane, da ne viri van ekrana */
+.seat-right .dealer-chip { right: auto; left: -9px; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .chip { font-size: .8rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); white-space: nowrap; }
 .chip.pass { background: #e25d5d; color: #fff; }
