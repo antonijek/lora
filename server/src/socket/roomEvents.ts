@@ -16,7 +16,8 @@ type Ack = (response: Record<string, unknown>) => void;
 const WAITING_GRACE_MS = Number(process.env.WAITING_GRACE_MS ?? 30000);
 
 const AI_NAMES = ['Milan', 'Jelena', 'Bora', 'Vesna', 'Zoran', 'Maja'];
-const AI_LEVELS: AiLevel[] = ['easy', 'medium', 'hard'];
+// jedan nivo AI-ja — uvek najjači
+const AI_LEVEL: AiLevel = 'hard';
 const CONTRACTS: ContractId[] = ['MAX', 'MIN', 'HERC', 'DAME', 'ZANDAR', 'KRALJ_ZADNJI', 'LORA'];
 
 function aiName(room: Room): string {
@@ -124,7 +125,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
   });
 
   socket.on('room:create', (payload: { aiLevel?: string }, ack?: Ack) => {
-    const aiLevel = AI_LEVELS.includes(payload?.aiLevel as AiLevel) ? (payload!.aiLevel as AiLevel) : 'hard';
+    const aiLevel = AI_LEVEL;
     leaveCurrent();
     const room = createRoom(aiLevel);
     const seat = seatInto(room)!;
@@ -152,7 +153,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       return;
     }
     leaveCurrent();
-    const fresh = createRoom('hard');
+    const fresh = createRoom(AI_LEVEL);
     fresh.hostSeat = seatInto(fresh)!;
     ack?.({ code: fresh.code });
     broadcast(fresh);

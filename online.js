@@ -209,7 +209,7 @@ export function initOnline(hooks) {
     if (res.error) $('lobbyError').textContent = res.error;
   });
   $('createBtn').addEventListener('click', async () => {
-    const res = await emit('room:create', { aiLevel: 'hard' });
+    const res = await emit('room:create', {});
     if (res.error) $('lobbyError').textContent = res.error;
   });
   $('joinForm').addEventListener('submit', e => {

@@ -216,8 +216,7 @@ export function loadPersistedRooms(): Room[] {
       code: d.code,
       createdAt: d.createdAt,
       hostSeat: d.hostSeat,
-      // 'medium' je bio podrazumevani pre Monte Carlo AI-ja — takve sobe dobijaju novi AI
-      aiLevel: d.aiLevel === 'medium' ? 'hard' : d.aiLevel,
+      aiLevel: 'hard', // jedan nivo AI-ja — i stare sačuvane sobe dobijaju najjači
       seats: d.seats,
       sockets: [null, null, null, null],
       game: d.gameState ? LoraGame.fromState(d.gameState) : null,

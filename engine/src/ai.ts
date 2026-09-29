@@ -43,7 +43,7 @@ export function chooseAction(
     const options = view.available;
     if (options.length === 0) throw new Error('AI nema igru za izbor');
     if (level === 'easy' || options.length === 1) return { type: 'choose', contract: options[Math.floor(rng() * options.length)] };
-    if (level === 'hard') return { type: 'choose', contract: searchContract(view, rng, opts.chooseSamples ?? 150) };
+    if (level === 'hard') return { type: 'choose', contract: searchContract(view, rng, opts.chooseSamples ?? 450) };
     let best = options[0];
     for (const c of options) if (estimateContract(c, view.hand) < estimateContract(best, view.hand)) best = c;
     return { type: 'choose', contract: best };
@@ -54,7 +54,7 @@ export function chooseAction(
   if (level === 'easy' || legal.length === 1) {
     return { type: 'play', cardId: legal[Math.floor(rng() * legal.length)].id };
   }
-  if (level === 'hard') return { type: 'play', cardId: searchCard(view, legal, rng, opts.samples ?? 100).id };
+  if (level === 'hard') return { type: 'play', cardId: searchCard(view, legal, rng, opts.samples ?? 300).id };
   const card = view.phase === 'LAYOUT'
     ? heuristicLayout(view.hand, view.layout, legal)
     : heuristicTrick({ hand: view.hand, trick: view.trick, contract: view.contract!, played: playedSet(view) }, legal);

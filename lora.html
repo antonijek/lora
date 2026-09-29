@@ -10,11 +10,11 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Lora</h1>
-    <div class="contract">
-      <b id="contractName"></b>
-      <span id="dealInfo"></span>
+    <div class="brand">
+      <h1>Lora</h1>
+      <div class="progress" title="Odigrane partije"><span id="dealNo"></span><i><b id="dealBar"></b></i></div>
     </div>
+    <div class="contract"><b id="contractName"></b></div>
     <div class="top-buttons">
       <button id="chatBtn" class="icon-btn" aria-label="Chat" title="Chat" hidden>💬<span id="chatBadge" class="badge" hidden></span></button>
       <button id="sheetBtn" class="icon-btn" aria-label="Tabela" title="Tabela">▦</button>
@@ -47,13 +47,6 @@
 
   <dialog id="menu">
     <h2>Meni</h2>
-    <label id="levelLabel">Protivnici
-      <select id="levelSel">
-        <option value="easy">Početnici</option>
-        <option value="medium">Iskusni</option>
-        <option value="hard" selected>Majstori</option>
-      </select>
-    </label>
     <div class="dialog-buttons">
       <button id="newGameBtn" class="btn primary">Nova igra</button>
       <button id="leaveMatchBtn" class="btn" hidden>Napusti meč</button>

@@ -24,7 +24,8 @@ let mode = 'local';      // 'local' | 'online'
 let game = null;         // lokalna igra
 let online = null;       // API iz online.js
 let onlineState = null;  // poslednji room:state
-let level = 'hard';
+// jedan nivo AI-ja — najjači (Monte Carlo)
+const level = 'hard';
 let timer = null;
 let busy = false;        // pauza dok se prikazuje završen štih
 let lastView = null;     // prethodni prikaz (za otkrivanje završenog štiha)
@@ -54,7 +55,7 @@ function ctx() {
 
 function save() {
   if (mode !== 'local' || !game) return;
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ aiLevel: level, state: game.getState() })); } catch {}
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ state: game.getState() })); } catch {}
 }
 
 function loadLocal() {
@@ -62,8 +63,6 @@ function loadLocal() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
     const data = JSON.parse(raw);
-    // stari snimci su imali 'level' (samo easy/medium) — novi podrazumevani AI je 'hard'
-    level = data.aiLevel ?? 'hard';
     game = LoraGame.fromState(data.state);
     return true;
   } catch {
@@ -113,8 +112,9 @@ function render(showTrick = null) {
   const rel = p => (p - c.me + 4) % 4;
 
   $('contractName').textContent = v.contract ? CONTRACT_NAMES[v.contract] : 'Bira se igra';
-  $('dealInfo').innerHTML =
-    `Igra: <strong>${esc(names[v.chooser])}</strong> · Delio: <strong>${esc(names[v.dealer])}</strong> · partija ${v.dealIndex + 1}/28`;
+  // ko je delio (D) i čija je igra (oznaka sa nazivom) vide se na pločicama igrača
+  $('dealNo').textContent = `${v.dealIndex + 1} / 28`;
+  $('dealBar').style.width = `${((v.dealIndex + 1) / 28) * 100}%`;
   // opis igre nije na stolu — vidi se kao podsetnik preko naziva u zaglavlju
   $('contractName').title = v.contract ? CONTRACT_GOALS[v.contract] : '';
 
@@ -485,14 +485,11 @@ $('sheetBtn').addEventListener('click', renderSheet);
 $('closeSheetBtn').addEventListener('click', () => $('sheet').close());
 $('menuBtn').addEventListener('click', () => {
   const isOnline = mode === 'online';
-  $('levelSel').value = level;
-  $('levelLabel').hidden = isOnline;
   $('newGameBtn').hidden = isOnline;
   $('leaveMatchBtn').hidden = !isOnline;
   $('menu').showModal();
 });
 $('closeMenuBtn').addEventListener('click', () => $('menu').close());
-$('levelSel').addEventListener('change', e => { level = e.target.value; save(); });
 $('newGameBtn').addEventListener('click', () => { $('menu').close(); newLocalGame(); });
 $('homeBtn').addEventListener('click', () => {
   $('menu').close();
