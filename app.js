@@ -446,13 +446,25 @@ function showScreen(id) {
   for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== id;
 }
 
+// Poslednji režim (protiv računara / online) — osvežavanje stranice vraća tamo
+// gde je igrač bio, a ne na početni ekran. Briše se samo kad sam ode na Početnu.
+const MODE_KEY = 'lora.mode';
+function rememberMode(m) {
+  try { m ? localStorage.setItem(MODE_KEY, m) : localStorage.removeItem(MODE_KEY); } catch {}
+}
+function lastMode() {
+  try { return localStorage.getItem(MODE_KEY); } catch { return null; }
+}
+
 function goHome() {
   clearTimeout(timer);
+  rememberMode(null);
   showScreen('startScreen');
 }
 
 function startLocal() {
   mode = 'local';
+  rememberMode('local');
   onlineState = null;
   lastView = null;
   $('chatBtn').hidden = true;
@@ -506,7 +518,7 @@ $('leaveMatchBtn').addEventListener('click', () => {
   online.leaveMatch();
 });
 $('goLocalBtn').addEventListener('click', startLocal);
-$('goOnlineBtn').addEventListener('click', () => online.start());
+$('goOnlineBtn').addEventListener('click', () => { rememberMode('online'); online.start(); });
 document.addEventListener('click', e => {
   if (pickerOpen && !e.target.closest('.picker')) { pickerOpen = false; render(); }
 });
@@ -551,8 +563,11 @@ if (!FAST) {
   fetch('api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ v: vid }) }).catch(() => {});
 }
 
-if (new URLSearchParams(location.search).has('room')) online.start();
-else if (new URLSearchParams(location.search).has('local')) startLocal();
+const params = new URLSearchParams(location.search);
+if (params.has('room')) { rememberMode('online'); online.start(); }
+else if (params.has('local')) startLocal();
+else if (lastMode() === 'online') online.start();
+else if (lastMode() === 'local') startLocal();
 else goHome();
 
 window.__lora = {
