@@ -90,7 +90,7 @@ export const CONTRACT_BASELINE: Record<ContractId, number> = {
   DAME: 0.189,
   ZANDAR: 0.132,
   KRALJ_ZADNJI: 0.443,
-  LORA: -1.974,
+  LORA: -1.426, // sa pravilom: "dalje" +1 i gubi −8
 };
 
 function searchContract(view: PlayerView, rng: () => number, samples: number): ContractId {
@@ -105,7 +105,7 @@ function searchContract(view: PlayerView, rng: () => number, samples: number): C
     for (let p = 0; p < 4; p++) hands[p] = p === me ? view.hand.slice() : deal.slice(k * 8, (k++ + 1) * 8);
     // ista deljenja za sve igre (manja varijansa poređenja)
     for (const c of view.available) {
-      const pts = simulate({ contract: c, hands: hands.map(h => h.slice()), turn: me, trick: [], taken: [[], [], [], []], counts: [0, 0, 0, 0], layout: emptyLayoutSim() });
+      const pts = simulate({ contract: c, hands: hands.map(h => h.slice()), turn: me, trick: [], taken: [[], [], [], []], counts: [0, 0, 0, 0], passes: [0, 0, 0, 0], layout: emptyLayoutSim() });
       totals.set(c, totals.get(c)! + relative(pts, me));
     }
   }
@@ -210,6 +210,8 @@ interface Sim {
   taken: Card[][];
   counts: number[];
   layout: Layout;
+  /** "dalje" po igraču (Lora) */
+  passes: number[];
   /** Poeni kad je partija gotova. */
   done?: number[];
 }
@@ -226,6 +228,7 @@ function simFromView(view: PlayerView, hands: Card[][]): Sim {
     trick: view.trick.slice(),
     taken: view.taken.map(t => t.slice()),
     counts: view.trickCounts.slice(),
+    passes: (view.passes ?? [0, 0, 0, 0]).slice(),
     layout: { startRank: view.layout.startRank, piles: { '♠': [...view.layout.piles['♠']], '♥': [...view.layout.piles['♥']], '♦': [...view.layout.piles['♦']], '♣': [...view.layout.piles['♣']] } },
   };
 }
@@ -236,7 +239,7 @@ function applyMove(sim: Sim, p: number, card: Card): void {
   if (sim.contract === 'LORA') {
     if (sim.layout.startRank === null) sim.layout.startRank = card.rank;
     sim.layout.piles[card.suit].push(card.rank);
-    if (hand.length === 0) { sim.done = scoreLayout(sim.hands.map(h => h.length), p); return; }
+    if (hand.length === 0) { sim.done = scoreLayout(sim.hands.map(h => h.length), p, sim.passes); return; }
     sim.turn = (p + 1) % 4;
     return;
   }
@@ -264,7 +267,7 @@ function simulate(sim: Sim): number[] {
     const p = sim.turn;
     if (sim.contract === 'LORA') {
       const legal = legalLayoutCards(sim.hands[p], sim.layout);
-      if (legal.length === 0) { sim.turn = (p + 1) % 4; continue; }
+      if (legal.length === 0) { sim.passes[p]++; sim.turn = (p + 1) % 4; continue; }
       applyMove(sim, p, legal.length === 1 ? legal[0] : heuristicLayout(sim.hands[p], sim.layout, legal));
     } else {
       const legal = legalTrickCards(sim.hands[p], sim.trick);

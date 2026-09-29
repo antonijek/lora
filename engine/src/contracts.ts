@@ -21,7 +21,7 @@ export const CONTRACT_GOALS: Record<ContractId, string> = {
   DAME: 'Ne nosite dame (+2 po dami).',
   ZANDAR: 'Ne nosite žandara tref (+8).',
   KRALJ_ZADNJI: 'Ne nosite kralja herc (+4) ni poslednji štih (+4).',
-  LORA: 'Slažite karte redom; ko se prvi oslobodi karata dobija −8, ostali +1 po karti.',
+  LORA: 'Slažite karte redom; ko se prvi oslobodi karata dobija −8 (ako nijednom nije rekao „dalje“), ostali +1 po karti; svako „dalje“ +1.',
 };
 
 export const isHeart = (c: Card) => c.suit === '♥';
@@ -77,7 +77,14 @@ export function scoreTricks(
   });
 }
 
-/** Bodovi Lore (slaganja): pobednik −8, ostali +1 po karti koja im je ostala. */
-export function scoreLayout(handCounts: readonly number[], winner: number): number[] {
-  return handCounts.map((n, p) => (p === winner ? -8 : n));
+/**
+ * Bodovi Lore (slaganje): svako "dalje" +1; ostali +1 po karti u ruci;
+ * ko se prvi oslobodi karata dobija −8 SAMO ako nijednom nije rekao "dalje"
+ * (inače ne dobija −8, nego samo svoje poene za "dalje").
+ */
+export function scoreLayout(handCounts: readonly number[], winner: number, passes: readonly number[] = [0, 0, 0, 0]): number[] {
+  return handCounts.map((n, p) => {
+    if (p === winner) return passes[p] > 0 ? passes[p] : -8;
+    return n + passes[p];
+  });
 }

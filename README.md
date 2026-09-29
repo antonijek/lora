@@ -22,7 +22,7 @@ Web aplikacija za Loru (lore, lorum): vi i 3 računara. Isti principi kao
 | Dame | +2 po dami |
 | Žandar tref | +8 |
 | Kralj herc i poslednji | +4 kralj herc, +4 poslednji štih |
-| Lora | prvi koji se oslobodi karata −8, ostali +1 po karti |
+| Lora | prvi koji se oslobodi karata −8 (samo ako nije rekao „dalje“), ostali +1 po karti; svako „dalje“ +1 |
 
 Izvor: legalbet.rs („Lora: kompletna pravila“). Varijante se razlikuju po krajevima,
 pa su redosled i izbor igara podesivi, a bodovanje je u `engine/src/contracts.ts`.

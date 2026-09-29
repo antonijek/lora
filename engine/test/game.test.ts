@@ -107,7 +107,7 @@ function checkDeal(s: ReturnType<LoraGame['getState']>) {
     case 'MIN': assert.equal(sum, 8); break;
     case 'HERC': assert.ok(sum === 8 || sum === -8, `herc zbir ${sum}`); break;
     case 'DAME': case 'ZANDAR': case 'KRALJ_ZADNJI': assert.equal(sum, 8); break;
-    case 'LORA': assert.equal(last.points.filter(p => p === -8).length, 1); break;
+    case 'LORA': assert.ok(last.points.filter(p => p === -8).length <= 1); break;
   }
 }
 

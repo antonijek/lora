@@ -32,6 +32,9 @@ test('KRALJ HERC +4, poslednji štih +4', () => {
 
 test('LORA: pobednik −8, ostali po +1 za svaku kartu', () => {
   assert.deepEqual(scoreLayout([0, 3, 5, 1], 0), [-8, 3, 5, 1]);
+  // svako "dalje" +1; pobednik koji je rekao "dalje" gubi −8
+  assert.deepEqual(scoreLayout([0, 3, 5, 1], 0, [0, 2, 0, 1]), [-8, 5, 5, 2]);
+  assert.deepEqual(scoreLayout([0, 3, 5, 1], 0, [1, 0, 0, 0]), [1, 3, 5, 1]);
 });
 
 test('rani kraj: sve dame / žandar tref / svi hercovi odneti', () => {

@@ -99,6 +99,8 @@ export interface LoraState {
    * nijednu kartu koja je tada mogla na sto. Koristi je AI za realna deljenja.
    */
   missing: CardId[][];
+  /** Koliko je puta svaki igrač rekao "dalje" u ovoj Lori (svako +1, i gubi −8). */
+  passes: number[];
   scores: number[];
   history: DealResult[];
   /** Na kraju meča: igrač(i) sa najmanje poena. */

@@ -14,7 +14,7 @@ for (const contract of DEFAULT_CONTRACTS) {
   for (let i = 0; i < n; i++) {
     const deck = shuffle(createDeck(), rng);
     const hands = [0, 1, 2, 3].map(p => deck.slice(p * 8, p * 8 + 8));
-    const pts = __test.simulate({ contract, hands, turn: 0, trick: [], taken: [[], [], [], []], counts: [0, 0, 0, 0], layout: __test.emptyLayoutSim() });
+    const pts = __test.simulate({ contract, hands, turn: 0, trick: [], taken: [[], [], [], []], counts: [0, 0, 0, 0], passes: [0, 0, 0, 0], layout: __test.emptyLayoutSim() });
     sum += __test.relative(pts, 0);
   }
   out[contract] = Math.round((sum / n) * 1000) / 1000;

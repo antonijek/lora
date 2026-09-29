@@ -44,6 +44,7 @@ export class LoraGame {
       layout: emptyLayout(),
       lastPass: null,
       missing: [[], [], [], []],
+      passes: [0, 0, 0, 0],
       scores: [0, 0, 0, 0],
       history: [],
       winners: [],
@@ -55,6 +56,7 @@ export class LoraGame {
     const g = new LoraGame({ ...opts, mode: state.mode });
     g.state = structuredClone(state);
     g.state.missing ??= [[], [], [], []]; // snimci pre ovog polja
+    g.state.passes ??= [0, 0, 0, 0];
     return g;
   }
 
@@ -131,6 +133,7 @@ export class LoraGame {
       if (need) addMissing(s.missing[player], [makeCard(need, suit).id]);
     }
     s.lastPass = player;
+    s.passes[player]++;
     s.turn = next(player);
   }
 
@@ -166,6 +169,7 @@ export class LoraGame {
     s.layout = emptyLayout();
     s.lastPass = null;
     s.missing = [[], [], [], []];
+    s.passes = [0, 0, 0, 0];
     if (s.mode === 'choice') s.phase = 'CHOOSING';
     else this.beginContract(this.available(s.chooser)[0]);
   }
@@ -211,7 +215,7 @@ export class LoraGame {
     if (s.layout.startRank === null) s.layout.startRank = card.rank;
     s.layout.piles[card.suit].push(card.rank);
     if (s.hands[player].length === 0) {
-      this.endDeal(scoreLayout(s.hands.map(h => h.length), player));
+      this.endDeal(scoreLayout(s.hands.map(h => h.length), player, s.passes));
       return;
     }
     s.turn = next(player);
