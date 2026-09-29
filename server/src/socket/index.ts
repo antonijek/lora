@@ -1,6 +1,6 @@
 import type { Server, Socket } from 'socket.io';
 import { verifyToken, fetchMe } from '../auth.js';
-import { upsertPlayer } from '../db.js';
+import { upsertPlayer, markActive } from '../db.js';
 import { markOnline, markOffline } from '../presence.js';
 import { registerRoomHandlers } from './roomEvents.js';
 
@@ -45,6 +45,7 @@ export function registerSocketHandlers(io: Server): void {
     const userId: number = socket.data.userId;
     const name: string = socket.data.name;
     upsertPlayer(userId, name);
+    markActive(userId);
     console.log(`Socket ${socket.id} authenticated as user ${userId} (${name})`);
     wrapSocketErrors(socket);
     markOnline(socket.id, userId, name);

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Lora admin</title>
+<style>
+  :root {
+    --bg: #0d1f17; --surface: #13291f; --surface-2: #183226; --edge: rgba(255,255,255,.1);
+    --ink: #eef2ef; --muted: #9fb3a7; --accent: #f2c14e; --accent-ink: #2b2100;
+    --good: #5fd08a; --danger: #ff8a80; --grid: rgba(255,255,255,.08);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--ink); }
+  a { color: var(--accent); }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; background: #091610; border-bottom: 1px solid var(--edge); }
+  header h1 { margin: 0; font-size: 1.2rem; }
+  header .who { color: var(--muted); font-size: .9rem; }
+  header nav { margin-left: auto; display: flex; gap: 14px; font-size: .9rem; align-items: center; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; }
+  .tabs button { padding: 8px 14px; border-radius: 999px; }
+  .tabs button.active { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: var(--surface); border: 1px solid var(--edge); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 1rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .card h2 .right { margin-left: auto; display: flex; gap: 6px; }
+  .group-title { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; margin: 4px 0 8px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .tile { background: var(--surface); border: 1px solid var(--edge); border-radius: 12px; padding: 12px 14px; }
+  .tile .num { font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tile .label { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+  .tile .goal { height: 4px; border-radius: 2px; background: var(--grid); margin-top: 8px; overflow: hidden; }
+  .tile .goal b { display: block; height: 100%; background: var(--accent); }
+  button { font: inherit; font-size: .85rem; background: var(--surface-2); color: var(--ink); border: 1px solid var(--edge); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  button:hover { border-color: rgba(255,255,255,.3); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+  button.danger { color: var(--danger); border-color: rgba(255,138,128,.4); }
+  input { font: inherit; background: rgba(255,255,255,.06); color: var(--ink); border: 1px solid var(--edge); border-radius: 8px; padding: 8px 10px; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.click { cursor: pointer; }
+  tr.click:hover td { background: rgba(255,255,255,.03); }
+  .muted { color: var(--muted); }
+  .empty { color: var(--muted); padding: 12px 0; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: .75rem; background: rgba(255,255,255,.08); color: var(--muted); }
+  .pill.on { background: rgba(95,208,138,.15); color: var(--good); }
+  .pill.gold { background: rgba(242,193,78,.15); color: var(--accent); }
+  .pill.bad { background: rgba(255,138,128,.15); color: var(--danger); }
+  .err { color: var(--danger); font-size: .9rem; min-height: 1.2em; }
+  .row-actions { display: flex; gap: 6px; }
+  /* grafikon */
+  .metric { display: flex; gap: 6px; flex-wrap: wrap; }
+  .metric button.active { border-color: var(--accent); color: var(--accent); }
+  .chart { position: relative; margin-top: 12px; }
+  .chart svg { display: block; width: 100%; height: 200px; overflow: visible; }
+  .chart .tip { position: absolute; pointer-events: none; background: #091610; border: 1px solid var(--edge); border-radius: 8px; padding: 6px 10px; font-size: .8rem; white-space: nowrap; transform: translate(-50%, -100%); display: none; }
+  .chart-sum { color: var(--muted); font-size: .85rem; }
+  /* sobe */
+  .rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+  .room { background: var(--surface); border: 1px solid var(--edge); border-radius: 12px; padding: 14px; }
+  .room-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .room-head .code { font-weight: 700; letter-spacing: .08em; font-size: 1.1rem; }
+  .seat-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--grid); font-size: .9rem; }
+  .seat-row .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.on { background: var(--good); }
+  /* login i dijalog */
+  #login { max-width: 360px; margin: 10vh auto; }
+  #login input { width: 100%; margin-bottom: 10px; }
+  #login button { width: 100%; padding: 10px; }
+  dialog { background: var(--surface); color: var(--ink); border: 1px solid var(--edge); border-radius: 12px; width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 18px; }
+  .short { display: none; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog h2 { margin-top: 0; font-size: 1.1rem; }
+  @media (max-width: 600px) {
+    header nav { margin-left: 0; width: 100%; }
+    main { padding: 12px; }
+    .tiles { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .tile { padding: 10px; }
+    .tile .num { font-size: 1.3rem; }
+    .tile .label { font-size: .75rem; }
+    dialog { padding: 12px; }
+    /* tabela meča: kratka imena igrača, bez kolone "Čija" (vidi se po tabeli) */
+    .deal-table th, .deal-table td { padding: 6px 4px; }
+    .deal-table .who { display: none; }
+    .long { display: none; }
+    .short { display: inline; }
+    /* igrači kao kartice: bez vodoravnog skrolovanja, dugmad uvek vidljiva */
+    .players-table thead { display: none; }
+    .players-table, .players-table tbody { display: block; }
+    .players-table tr { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--grid); }
+    .players-table td { border: 0; padding: 0; text-align: left; }
+    .players-table td:nth-child(2) { flex-basis: 100%; order: 2; font-size: .82rem; }
+    .players-table td[data-l] { order: 3; font-size: .82rem; color: var(--muted); }
+    .players-table td[data-l]::before { content: attr(data-l) ' '; }
+    .players-table td:nth-child(7) { order: 1; }
+    .players-table td:last-child { order: 4; flex-basis: 100%; margin-top: 6px; }
+    .card h2 .right { width: 100%; margin-left: 0; }
+    .card h2 .right input { flex: 1; min-width: 0; }
+  }
+</style>
+</head>
+<body>
+
+<section id="login" class="card" hidden>
+  <h2>Lora admin — prijava</h2>
+  <p class="muted">Isti nalog kao za Preferans i Loru. Potrebna su admin prava.</p>
+  <form id="loginForm">
+    <input id="email" type="email" placeholder="Email" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Lozinka" autocomplete="current-password" required>
+    <button class="primary" type="submit">Prijavi se</button>
+    <p id="loginErr" class="err"></p>
+  </form>
+</section>
+
+<div id="app" hidden>
+  <header>
+    <h1>Lora admin</h1>
+    <span id="who" class="who"></span>
+    <nav>
+      <a href="./">Igra</a>
+      <a href="https://preferans.igrajmo.online/admin.html" target="_blank" rel="noopener" title="Nalozi (email, ime, brisanje, admin prava) su zajednički i uređuju se u Preferans adminu">Nalozi (Preferans admin)</a>
+      <a href="#" id="logout">Odjava</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="tabs" role="tablist">
+      <button data-tab="pregled" class="active">Pregled</button>
+      <button data-tab="igraci">Igrači</button>
+      <button data-tab="sobe">Sobe</button>
+      <button data-tab="partije">Mečevi</button>
+    </div>
+
+    <!-- PREGLED -->
+    <section class="panel active" data-tab="pregled">
+      <div class="group-title">Sada</div>
+      <div class="tiles" id="tilesNow"></div>
+      <div class="group-title">Igrači sa nalogom</div>
+      <div class="tiles" id="tilesPlayers"></div>
+      <div class="group-title">Posetioci (svi, i oni koji igraju protiv računara bez naloga)</div>
+      <div class="tiles" id="tilesVisitors"></div>
+      <div class="group-title">Mečevi (završeni online)</div>
+      <div class="tiles" id="tilesMatches"></div>
+
+      <div class="card">
+        <h2>Poslednjih 30 dana <span class="right metric" id="metric">
+          <button data-m="active" class="active">Aktivni igrači</button>
+          <button data-m="visitors">Posetioci</button>
+          <button data-m="matches">Mečevi</button>
+          <button data-m="newPlayers">Novi igrači</button>
+        </span></h2>
+        <div class="chart-sum" id="chartSum"></div>
+        <div class="chart" id="chart"><svg id="chartSvg" role="img"></svg><div class="tip" id="tip"></div></div>
+      </div>
+
+      <div class="card">
+        <h2>Ko je online <span class="right"><button class="refresh">Osveži</button></span></h2>
+        <div id="onlineList"></div>
+      </div>
+    </section>
+
+    <!-- IGRAČI -->
+    <section class="panel" data-tab="igraci">
+      <div class="card">
+        <h2>Igrači <span class="right"><input id="search" type="search" placeholder="Traži ime ili email"><button class="refresh">Osveži</button></span></h2>
+        <div class="scroll"><table class="players-table">
+          <thead><tr><th>Ime</th><th>Email</th><th class="num">Rejting</th><th class="num">Mečeva</th><th>Poslednji put</th><th>Registrovan</th><th>Status</th><th></th></tr></thead>
+          <tbody id="players"></tbody>
+        </table></div>
+        <p class="muted" style="font-size:.85rem">Ban važi za ceo nalog, dakle i za Preferans. Ime, email, brisanje naloga i admin prava menjaju se u Preferans adminu.</p>
+      </div>
+    </section>
+
+    <!-- SOBE -->
+    <section class="panel" data-tab="sobe">
+      <div class="card">
+        <h2>Sobe uživo <span class="right"><button class="refresh">Osveži</button></span></h2>
+        <div id="rooms" class="rooms"></div>
+      </div>
+    </section>
+
+    <!-- MEČEVI -->
+    <section class="panel" data-tab="partije">
+      <div class="card">
+        <h2>Završeni mečevi <span class="right"><button class="refresh">Osveži</button></span></h2>
+        <div class="scroll"><table>
+          <thead><tr><th>#</th><th>Kraj</th><th>Soba</th><th>Tip</th><th>Igrači (poeni, promena rejtinga)</th></tr></thead>
+          <tbody id="matches"></tbody>
+        </table></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog id="matchDlg">
+  <div id="matchBody"></div>
+  <p><button id="matchClose">Zatvori</button></p>
+</dialog>
+
+<script>
+const TOKEN_KEY = 'lora_token'; // isti ključ kao igra — admin prijavljen u igri ne mora ponovo
+const CONTRACTS = { MAX: 'Maksimum', MIN: 'Minimum', HERC: 'Herc', DAME: 'Dame', ZANDAR: 'Žandar tref', KRALJ_ZADNJI: 'Kralj herc i poslednji', LORA: 'Lora' };
+const GOAL_ACTIVE = 100; // cilj iz plana: ~100 aktivnih dnevno pre naplate
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// SQLite datetime('now') je UTC bez zone
+const toDate = s => (s ? new Date(s.includes('T') ? s : s.replace(' ', 'T') + 'Z') : null);
+const fmtDate = s => { const d = toDate(s); return d ? d.toLocaleString('sr-RS', { day: 'numeric', month: 'numeric', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'; };
+function ago(s) {
+  const d = toDate(s); if (!d) return '—';
+  const m = Math.round((Date.now() - d) / 60000);
+  if (m < 1) return 'upravo';
+  if (m < 60) return `pre ${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `pre ${h} h`;
+  const days = Math.round(h / 24);
+  return days === 1 ? 'juče' : `pre ${days} dana`;
+}
+
+let token = null;
+try { token = localStorage.getItem(TOKEN_KEY); } catch {}
+
+async function api(path, opts = {}) {
+  const res = await fetch('api/' + path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token, ...(opts.headers || {}) },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) { showLogin('Prijavite se.'); throw new Error('401'); }
+  if (res.status === 403 && path.startsWith('admin/stats')) { showLogin('Ovaj nalog nema admin prava.'); throw new Error('403'); }
+  if (!res.ok) throw new Error(data.error || 'Greška ' + res.status);
+  return data;
+}
+const act = async (fn) => { try { await fn(); } catch (e) { if (!/^40[13]$/.test(e.message)) alert(e.message); } };
+
+// ---------------------------------------------------------------- prijava
+
+function showLogin(msg) {
+  $('app').hidden = true;
+  $('login').hidden = false;
+  $('loginErr').textContent = msg || '';
+}
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('loginErr').textContent = '';
+  const res = await fetch('api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: $('email').value.trim(), password: $('password').value }) });
+  const data = await res.json().catch(() => ({}));
+  if (!data.token) { $('loginErr').textContent = data.error || 'Prijava nije uspela.'; return; }
+  token = data.token;
+  try { localStorage.setItem(TOKEN_KEY, token); } catch {}
+  start();
+});
+$('logout').addEventListener('click', e => {
+  e.preventDefault();
+  try { localStorage.removeItem(TOKEN_KEY); } catch {}
+  token = null;
+  showLogin();
+});
+
+async function start() {
+  if (!token) return showLogin();
+  try { await loadStats(); } catch (e) { if (!/^40[13]$/.test(e.message)) showLogin(e.message); return; }
+  $('login').hidden = true;
+  $('app').hidden = false;
+  fetch('api/me', { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()).then(d => { $('who').textContent = d.user ? d.user.name : ''; }).catch(() => {});
+  loadOnline();
+}
+
+// ---------------------------------------------------------------- kartice
+
+let tab = 'pregled';
+const loaders = { pregled: () => { loadStats(); loadOnline(); }, igraci: loadPlayers, sobe: loadRooms, partije: loadMatches };
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.dataset.tab === tab));
+  act(loaders[tab]);
+}));
+document.querySelectorAll('.refresh').forEach(b => b.addEventListener('click', () => act(loaders[tab])));
+// Pregled i Sobe se sami osvežavaju dok je stranica otvorena
+setInterval(() => { if (!$('app').hidden && !document.hidden && (tab === 'pregled' || tab === 'sobe')) act(loaders[tab]); }, 15000);
+
+// ---------------------------------------------------------------- pregled
+
+let stats = null;
+let metric = 'active';
+
+function tile(num, label, goal) {
+  const bar = goal ? `<div class="goal" title="Cilj: ${goal} aktivnih dnevno"><b style="width:${Math.min(100, num / goal * 100)}%"></b></div>` : '';
+  return `<div class="tile"><div class="num">${num}</div><div class="label">${label}</div>${bar}</div>`;
+}
+
+async function loadStats() {
+  stats = await api('admin/stats');
+  const s = stats;
+  $('tilesNow').innerHTML = tile(s.onlineNow, 'online sada') + tile(s.liveRooms, 'soba uživo') + tile(s.playingRooms, 'meč u toku');
+  $('tilesPlayers').innerHTML = tile(s.activeToday, `aktivnih danas (cilj ${GOAL_ACTIVE})`, GOAL_ACTIVE) + tile(s.active7, 'aktivnih za 7 dana') + tile(s.active30, 'aktivnih za 30 dana') + tile(s.newPlayers7, 'novih za 7 dana') + tile(s.totalPlayers, 'ukupno igrača');
+  $('tilesVisitors').innerHTML = tile(s.visitorsToday, 'danas') + tile(s.visitors7, 'za 7 dana') + tile(s.visitors30, 'za 30 dana');
+  $('tilesMatches').innerHTML = tile(s.matchesToday, 'danas') + tile(s.matches7, 'za 7 dana') + tile(s.matchesTotal, 'ukupno');
+  drawChart();
+}
+
+const METRIC_LABEL = { active: 'aktivnih igrača', visitors: 'posetilaca', matches: 'mečeva', newPlayers: 'novih igrača' };
+$('metric').addEventListener('click', e => {
+  const b = e.target.closest('button[data-m]');
+  if (!b) return;
+  metric = b.dataset.m;
+  $('metric').querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+  drawChart();
+});
+
+function drawChart() {
+  const svg = $('chartSvg');
+  const data = stats.daily.map(d => ({ day: d.day, v: d[metric] }));
+  const W = svg.clientWidth || 800, H = 200, padL = 28, padB = 22, padT = 8;
+  const max = Math.max(4, ...data.map(d => d.v));
+  const step = Math.ceil(max / 4);
+  const top = step * 4;
+  const plotW = W - padL, plotH = H - padB - padT;
+  const bw = plotW / data.length;
+  const y = v => padT + plotH - (v / top) * plotH;
+  let out = '';
+  for (let i = 0; i <= 4; i++) {
+    const v = step * i;
+    out += `<line x1="${padL}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)" stroke-width="1"/>`;
+    out += `<text x="${padL - 6}" y="${y(v) + 4}" text-anchor="end" fill="var(--muted)" font-size="11">${v}</text>`;
+  }
+  data.forEach((d, i) => {
+    const x = padL + i * bw + 1, w = Math.max(2, bw - 2); // 2px razmak između stubića
+    const h = (d.v / top) * plotH;
+    if (h > 0) {
+      const r = Math.min(4, w / 2, h);
+      const yy = padT + plotH - h;
+      // zaobljen samo vrh, dno leži na osi
+      out += `<path d="M${x},${padT + plotH} V${yy + r} Q${x},${yy} ${x + r},${yy} H${x + w - r} Q${x + w},${yy} ${x + w},${yy + r} V${padT + plotH} Z" fill="var(--accent)"/>`;
+    }
+    out += `<rect x="${padL + i * bw}" y="${padT}" width="${bw}" height="${plotH}" fill="transparent" data-i="${i}"/>`;
+    if (i % 5 === 4 || i === data.length - 1) {
+      const [, m, dd] = d.day.split('-');
+      out += `<text x="${x + w / 2}" y="${H - 6}" text-anchor="middle" fill="var(--muted)" font-size="11">${+dd}.${+m}.</text>`;
+    }
+  });
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('aria-label', `Broj ${METRIC_LABEL[metric]} po danu, poslednjih 30 dana`);
+  svg.innerHTML = out;
+  const total = data.reduce((a, d) => a + d.v, 0);
+  const best = data.reduce((a, d) => (d.v > a.v ? d : a), data[0]);
+  $('chartSum').textContent = metric === 'active' || metric === 'visitors'
+    ? `Najviše ${METRIC_LABEL[metric]} u danu: ${best.v}${best.v ? ` (${best.day.split('-').reverse().slice(0, 2).join('.')}.)` : ''}`
+    : `Ukupno ${METRIC_LABEL[metric]} za 30 dana: ${total}`;
+
+  const tip = $('tip');
+  svg.onmousemove = e => {
+    const i = e.target.dataset?.i;
+    if (i === undefined) { tip.style.display = 'none'; return; }
+    const d = data[i];
+    const [yy, m, dd] = d.day.split('-');
+    tip.innerHTML = `<b>${+dd}.${+m}.${yy}.</b><br>${d.v} ${METRIC_LABEL[metric]}`;
+    const box = svg.getBoundingClientRect();
+    tip.style.left = ((padL + (+i + .5) * bw) / W * box.width) + 'px';
+    tip.style.top = (y(d.v) / H * box.height - 6) + 'px';
+    tip.style.display = 'block';
+  };
+  svg.onmouseleave = () => { tip.style.display = 'none'; };
+}
+window.addEventListener('resize', () => { if (stats && tab === 'pregled') drawChart(); });
+
+async function loadOnline() {
+  const { users } = await api('admin/online');
+  $('onlineList').innerHTML = users.length
+    ? `<div class="scroll"><table><thead><tr><th>Ime</th><th class="num">Rejting</th><th>Gde je</th></tr></thead><tbody>${users.map(u =>
+        `<tr><td>${esc(u.name)}</td><td class="num">${u.rating}</td><td>${u.room ? `soba <b>${esc(u.room)}</b>` : '<span class="muted">u lobiju</span>'}</td></tr>`).join('')}</tbody></table></div>`
+    : '<p class="empty">Trenutno niko nije online (prijavljen).</p>';
+}
+
+// ---------------------------------------------------------------- igrači
+
+let players = [];
+async function loadPlayers() {
+  ({ players } = await api('admin/players'));
+  renderPlayers();
+}
+$('search').addEventListener('input', renderPlayers);
+function renderPlayers() {
+  const q = $('search').value.trim().toLowerCase();
+  const list = players.filter(p => !q || p.name.toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q));
+  $('players').innerHTML = list.length ? list.map(p => {
+    const st = p.banned ? '<span class="pill bad">banovan</span>'
+      : p.room ? `<span class="pill on">u sobi ${esc(p.room)}</span>`
+      : p.online ? '<span class="pill on">online</span>' : '';
+    return `<tr>
+      <td><b>${esc(p.name)}</b></td>
+      <td class="muted">${esc(p.email || '—')}</td>
+      <td class="num" data-l="rejting">${p.rating}</td>
+      <td class="num" data-l="mečeva">${p.games_played}</td>
+      <td title="${esc(fmtDate(p.last_seen_at))}" data-l="poslednji put">${ago(p.last_seen_at)}</td>
+      <td class="muted" data-l="registrovan">${fmtDate(p.created_at)}</td>
+      <td>${st}</td>
+      <td><div class="row-actions">
+        <button data-rating="${p.user_id}">Rejting</button>
+        <button class="${p.banned ? '' : 'danger'}" data-ban="${p.user_id}" data-banned="${p.banned ? 1 : 0}">${p.banned ? 'Skini ban' : 'Ban'}</button>
+      </div></td></tr>`;
+  }).join('') : `<tr><td colspan="8" class="empty">${players.length ? 'Nema rezultata.' : 'Još nema igrača.'}</td></tr>`;
+}
+$('players').addEventListener('click', e => {
+  const r = e.target.closest('[data-rating]');
+  const b = e.target.closest('[data-ban]');
+  if (r) {
+    const p = players.find(x => x.user_id == r.dataset.rating);
+    const v = prompt(`Novi rejting za ${p.name} (trenutno ${p.rating}):`, p.rating);
+    if (v === null) return;
+    act(async () => { await api(`admin/players/${p.user_id}/rating`, { method: 'POST', body: JSON.stringify({ rating: Number(v) }) }); await loadPlayers(); });
+  }
+  if (b) {
+    const p = players.find(x => x.user_id == b.dataset.ban);
+    const ban = b.dataset.banned !== '1';
+    if (!confirm(ban ? `Banovati ${p.name}? Ne moći će da igra ni Loru ni Preferans, a iz trenutnog meča ga menja AI.` : `Skinuti ban igraču ${p.name}?`)) return;
+    act(async () => { await api(`admin/players/${p.user_id}/ban`, { method: 'POST', body: JSON.stringify({ banned: ban }) }); await loadPlayers(); });
+  }
+});
+
+// ---------------------------------------------------------------- sobe
+
+const STATUS = { WAITING: ['čeka igrače', 'gold'], PLAYING: ['igra se', 'on'], FINISHED: ['završen', ''] };
+async function loadRooms() {
+  const { rooms } = await api('admin/rooms');
+  $('rooms').innerHTML = rooms.length ? rooms.map(r => {
+    const [label, cls] = STATUS[r.status];
+    const info = r.status === 'PLAYING'
+      ? `partija ${r.deal}/${r.totalDeals}${r.contract ? ` · ${CONTRACTS[r.contract]}` : ' · bira se igra'}${r.paused ? ' · <span class="pill bad">pauza, niko nije povezan</span>' : ''}`
+      : `napravljena ${ago(r.createdAt)}`;
+    const seats = r.seats.map((s, i) => {
+      const name = s.kind === 'empty' ? '<span class="muted">slobodno</span>' : esc(s.name);
+      const tags = [s.host ? 'domaćin' : '', s.kind === 'ai' ? (s.formerUserId ? 'AI umesto čoveka' : String(s.name).includes('(AI)') ? '' : 'AI') : ''].filter(Boolean).join(', ');
+      const score = r.scores ? `<span class="muted">${r.scores[i]} p.</span>` : '';
+      const kick = s.kind === 'human' && r.status !== 'FINISHED' ? `<button class="danger" data-kick="${r.code}" data-seat="${i}" data-name="${esc(s.name)}">Udalji</button>` : '';
+      return `<div class="seat-row"><span class="dot ${s.kind === 'ai' || s.connected ? 'on' : ''}" title="${s.kind === 'human' ? (s.connected ? 'povezan' : 'nije povezan') : ''}"></span><span class="n">${name}${tags ? ` <span class="muted">(${tags})</span>` : ''}</span>${score}${kick}</div>`;
+    }).join('');
+    return `<div class="room">
+      <div class="room-head"><span class="code">${esc(r.code)}</span><span class="pill ${cls}">${label}</span>${r.rated ? '<span class="pill gold">rangiran</span>' : ''}
+        <button class="danger" style="margin-left:auto" data-close="${r.code}">Zatvori</button></div>
+      <div class="muted" style="font-size:.85rem;margin-bottom:6px">${info}</div>${seats}</div>`;
+  }).join('') : '<p class="empty">Nema otvorenih soba.</p>';
+}
+$('rooms').addEventListener('click', e => {
+  const k = e.target.closest('[data-kick]');
+  const c = e.target.closest('[data-close]');
+  if (k && confirm(`Udaljiti ${k.dataset.name} iz sobe ${k.dataset.kick}? U meču ga menja AI, a može se vratiti istim kodom (za trajno — ban).`)) {
+    act(async () => { await api(`admin/rooms/${k.dataset.kick}/kick`, { method: 'POST', body: JSON.stringify({ seat: Number(k.dataset.seat) }) }); await loadRooms(); });
+  }
+  if (c && confirm(`Zatvoriti sobu ${c.dataset.close}? Meč se prekida bez upisa rezultata i rejtinga.`)) {
+    act(async () => { await api(`admin/rooms/${c.dataset.close}/close`, { method: 'POST', body: '{}' }); await loadRooms(); });
+  }
+});
+
+// ---------------------------------------------------------------- mečevi
+
+function seatsWithScores(m) {
+  const seats = JSON.parse(m.seats_json), scores = JSON.parse(m.scores_json), deltas = JSON.parse(m.rating_deltas_json);
+  const best = Math.min(...scores);
+  return seats.map((s, i) => ({ ...s, score: scores[i], delta: deltas[i], win: scores[i] === best }));
+}
+async function loadMatches() {
+  const { matches } = await api('admin/matches?limit=200');
+  $('matches').innerHTML = matches.length ? matches.map(m => {
+    const who = seatsWithScores(m).map(s => {
+      const d = m.rated && s.kind !== 'ai' ? ` <span class="muted">${s.delta >= 0 ? '+' : ''}${s.delta}</span>` : '';
+      return `<span${s.win ? ' style="color:var(--accent)"' : ''}>${esc(s.name)} ${s.score}${d}</span>`;
+    }).join(' · ');
+    return `<tr class="click" data-id="${m.id}"><td>${m.id}</td><td>${fmtDate(m.ended_at)}</td><td>${esc(m.room_code)}</td><td>${m.rated ? '<span class="pill gold">rangiran</span>' : '<span class="pill">nerangiran</span>'}</td><td>${who}</td></tr>`;
+  }).join('') : '<tr><td colspan="5" class="empty">Još nema završenih mečeva.</td></tr>';
+}
+$('matches').addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-id]');
+  if (tr) act(() => openMatch(tr.dataset.id));
+});
+async function openMatch(id) {
+  const { match: m } = await api('admin/matches/' + id);
+  const seats = seatsWithScores(m);
+  const hist = JSON.parse(m.history_json || '[]');
+  const short = n => esc(String(n).replace(' (AI)', '').slice(0, 4));
+  const head = seats.map(s => `<th class="num" title="${esc(s.name)}"><span class="long">${esc(s.name)}</span><span class="short">${short(s.name)}</span></th>`).join('');
+  const rows = hist.map(h => `<tr><td>${h.dealIndex + 1}</td><td>${CONTRACTS[h.contract] || h.contract}</td><td class="muted who">${esc(seats[h.chooser]?.name)}</td>${h.points.map(p => `<td class="num">${p}</td>`).join('')}</tr>`).join('');
+  $('matchBody').innerHTML = `<h2>Meč #${m.id} · soba ${esc(m.room_code)}</h2>
+    <p class="muted">${fmtDate(m.ended_at)} · ${m.rated ? 'rangiran' : 'nerangiran'}</p>
+    <div class="scroll"><table class="deal-table"><thead><tr><th>#</th><th>Igra</th><th class="who">Čija</th>${head}</tr></thead><tbody>${rows}
+    <tr><td colspan="2"><b>Ukupno</b></td><td class="who"></td>${seats.map(s => `<td class="num"><b${s.win ? ' style="color:var(--accent)"' : ''}>${s.score}</b></td>`).join('')}</tr></tbody></table></div>`;
+  $('matchDlg').showModal();
+}
+$('matchClose').addEventListener('click', () => $('matchDlg').close());
+
+start();
+</script>
+</body>
+</html>

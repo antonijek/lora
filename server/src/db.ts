@@ -38,6 +38,21 @@ export async function initDb(): Promise<void> {
     state_json TEXT NOT NULL,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
+  // Statistika za admin panel: ko je bio online kog dana (prijavljeni) i
+  // koliko je posetilaca otvorilo igru (i oni bez naloga, protiv računara).
+  // visitor je nasumičan id iz localStorage — nema ličnih podataka.
+  db.run(`CREATE TABLE IF NOT EXISTS player_days (
+    user_id INTEGER NOT NULL,
+    day TEXT NOT NULL,
+    PRIMARY KEY (user_id, day)
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS visits (
+    day TEXT NOT NULL,
+    visitor TEXT NOT NULL,
+    PRIMARY KEY (day, visitor)
+  )`);
+  const cols = all<{ name: string }>('PRAGMA table_info(lora_players)').map(c => c.name);
+  if (!cols.includes('last_seen_at')) db.run('ALTER TABLE lora_players ADD COLUMN last_seen_at TEXT');
   persist();
 }
 
@@ -94,6 +109,16 @@ export function upsertPlayer(userId: number, name: string): void {
      ON CONFLICT(user_id) DO UPDATE SET name = excluded.name`,
     [userId, name],
   );
+}
+
+/** Prijavljen igrač se povezao — beleži dan (za "aktivni danas/7/30 dana") i poslednji dolazak. */
+export function markActive(userId: number): void {
+  run("INSERT OR IGNORE INTO player_days (user_id, day) VALUES (?, date('now'))", [userId]);
+  run("UPDATE lora_players SET last_seen_at = datetime('now') WHERE user_id = ?", [userId]);
+}
+
+export function recordVisit(visitor: string): void {
+  run("INSERT OR IGNORE INTO visits (day, visitor) VALUES (date('now'), ?)", [visitor]);
 }
 
 export function getRating(userId: number): number {

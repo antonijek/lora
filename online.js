@@ -275,7 +275,9 @@ export function initOnline(hooks) {
     if (!list.hidden) { list.hidden = true; return; }
     const { users = [] } = await emit('presence:list');
     list.innerHTML = users.length
-      ? users.map(u => `<li><span>${esc(u.name)} <span class="muted small">(${u.rating})</span></span><button class="btn" data-invite="${u.userId}">Pozovi</button></li>`).join('')
+      ? users.map(u => `<li><span>${esc(u.name)} <span class="muted small">(${u.rating})</span></span>${u.busy
+          ? '<button class="btn" disabled title="Igrač je u meču — poziv će moći kad završi">U meču</button>'
+          : `<button class="btn" data-invite="${u.userId}">Pozovi</button>`}</li>`).join('')
       : '<li class="empty">Trenutno niko drugi nije online.</li>';
     list.hidden = false;
   });
@@ -283,7 +285,7 @@ export function initOnline(hooks) {
     const btn = e.target.closest('[data-invite]');
     if (!btn) return;
     const res = await emit('room:invite', { userId: Number(btn.dataset.invite) });
-    btn.textContent = res.error ? 'Nije online' : 'Pozvan ✓';
+    btn.textContent = res.busy ? 'U meču' : res.error ? 'Nije online' : 'Pozvan ✓';
     btn.disabled = true;
   });
 

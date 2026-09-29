@@ -120,8 +120,15 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 
   socket.on('room:list', (_p: unknown, ack?: Ack) => ack?.({ rooms: listOpenRooms() }));
 
+  /** Igrač je usred meča — poziv mu se ne šalje (klijent za stolom ga ionako ne bi prikazao). */
+  function inMatch(uid: number): boolean {
+    const loc = getUserLocation(uid);
+    const room = loc ? getRoom(loc.code) : undefined;
+    return !!room && status(room) === 'PLAYING';
+  }
+
   socket.on('presence:list', (_p: unknown, ack?: Ack) => {
-    ack?.({ users: listOnlineUsers().filter(u => u.userId !== userId) });
+    ack?.({ users: listOnlineUsers().filter(u => u.userId !== userId).map(u => ({ ...u, busy: inMatch(u.userId) })) });
   });
 
   socket.on('room:create', (payload: { aiLevel?: string }, ack?: Ack) => {
@@ -214,6 +221,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     const target = Number(payload?.userId);
     const sids = Number.isInteger(target) ? getSocketIdsForUser(target) : [];
     if (sids.length === 0) return ack?.({ error: 'Igrač više nije online.' });
+    if (inMatch(target)) return ack?.({ error: 'Igrač je upravo u meču.', busy: true });
     for (const sid of sids) io.to(sid).emit('room:invited', { code: cur.room.code, fromName: name });
     ack?.({ ok: true });
   });

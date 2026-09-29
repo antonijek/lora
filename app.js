@@ -133,15 +133,16 @@ function renderSeat(c, p, relPos, showTrick) {
 
   const plate = document.createElement('div');
   plate.className = 'plate' + (active ? ' active' : '') + (info && !info.connected ? ' offline' : '');
-  const tricks = v.phase === 'TRICKS' ? ` · štihova <b>${v.trickCounts[p]}</b>` : '';
-  const cards = p !== c.me ? ` · karata <b>${v.handCounts[p]}</b>` : '';
+  // span-ovi: na telefonu se štihovi prelamaju u novi red, a "igre" i rejting kriju (uske pločice)
+  const tricks = v.phase === 'TRICKS' ? `<span class="tr"><span class="sep"> · </span>štihova <b>${v.trickCounts[p]}</b></span>` : '';
+  const cards = p !== c.me ? `<span class="sep"> · </span>karata <b>${v.handCounts[p]}</b>` : '';
   const tag = info?.kind === 'ai' && !String(info.name).includes('(AI)') ? '<span class="ai-tag">AI</span>'
     : info && !info.connected ? '<span class="ai-tag">bez veze</span>' : '';
   plate.innerHTML =
     `<div class="avatar" style="background:${COLORS[p]}">${esc(String(names[p])[0] ?? '?')}</div>` +
     `<div><div class="name">${esc(names[p])}${tag}</div>` +
     `<div class="sub">poena <b>${v.scores[p]}</b>${tricks}</div>` +
-    `<div class="sub">igre ${v.used[p].length}/${DEFAULT_CONTRACTS.length}${cards}${info && p !== c.me ? ` · rejting ${info.rating}` : ''}</div></div>` +
+    `<div class="sub"><span class="g">igre ${v.used[p].length}/${DEFAULT_CONTRACTS.length}</span>${cards}${info && p !== c.me ? `<span class="r"> · rejting ${info.rating}</span>` : ''}</div></div>` +
     (v.dealer === p ? '<span class="dealer-chip" title="Delio">D</span>' : '');
 
   const chips = document.createElement('div');
@@ -537,6 +538,18 @@ online = initOnline({
   goHome,
   showScreen,
 });
+
+// brojač posetilaca za admin statistiku: nasumičan id, bez ličnih podataka
+// (lokalni dev server nema /api — greška se tiho ignoriše)
+if (!FAST) {
+  let vid = null;
+  try { vid = localStorage.getItem('lora.vid'); } catch {}
+  if (!vid) {
+    vid = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
+    try { localStorage.setItem('lora.vid', vid); } catch {}
+  }
+  fetch('api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ v: vid }) }).catch(() => {});
+}
 
 if (new URLSearchParams(location.search).has('room')) online.start();
 else if (new URLSearchParams(location.search).has('local')) startLocal();

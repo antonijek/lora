@@ -214,30 +214,86 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
 
 /* ---------- telefon ---------- */
 @media (max-width: 640px) {
-  .table { inset: 9% 3% 12%; border-radius: 120px; }
-  .center { inset: 22% 16% 25%; }
-  .plate { min-width: 0; padding: 5px 8px 5px 5px; gap: 6px; }
-  .avatar { width: 30px; height: 30px; font-size: .95rem; }
-  .name { font-size: .95rem; }
-  .sub { font-size: .75rem; }
-  .seat-left, .seat-right { top: 46%; }
-  .seat-left .plate, .seat-right .plate { flex-direction: column; text-align: center; padding: 6px; }
-  .seat-left .backs, .seat-right .backs { display: none; }
-  .seat-top .backs img { width: calc(var(--back-w) * .8); }
-  .layout { gap: 4px; }
-  .trick .slot[data-rel="1"] { right: 2%; }
-  .trick .slot[data-rel="3"] { left: 2%; }
-  .hand .card { margin-left: calc(var(--card-w) * -.3); }
-  .hand-row { grid-template-columns: 1fr; gap: 6px; position: relative; }
-  .hand-row > .hand-side:first-child { display: none; }
-  /* dugme lebdi iznad karata — ne sme da menja visinu reda (pa ni stola) */
-  .actions { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); z-index: 6; }
-  .actions:empty { display: none; }
+  /* veće karte: na uspravnom telefonu ima mesta u visinu */
+  :root {
+    --card-w: min(15.5vw, 64px);
+    --trick-w: min(19vw, 11vh, 78px);
+    --mini-w: min(12vw, 7.5vh, 50px);
+  }
   .topbar { height: 54px; padding: 6px 10px; gap: 8px; }
   .topbar h1 { font-size: 1.05rem; }
   .progress { min-width: 48px; }
   .contract b { font-size: 1.2rem; }
+
+  /* sva tri protivnika u redu na vrhu (levo · preko puta · desno) — ceo sto ostaje slobodan za karte */
+  .table { inset: 13% 3% 12%; border-radius: 120px; }
+  .seat-top, .seat-left, .seat-right { top: 6px; transform: none; flex-direction: column; gap: 4px; width: 31.5%; }
+  .seat-left { left: 1%; }
+  .seat-top { left: 34.25%; }
+  .seat-right { right: 1%; }
+  .seat-top .plate, .seat-left .plate, .seat-right .plate {
+    flex-direction: column; text-align: center; gap: 2px; padding: 6px 4px; width: 100%; min-width: 0;
+  }
+  .seat .backs { display: none; }
+  .seat:not(.seat-me) .g, .seat:not(.seat-me) .g + .sep, .plate .r { display: none; }
+  .seat:not(.seat-me) .tr { display: block; }
+  .seat:not(.seat-me) .tr .sep { display: none; }
+  .seat:not(.seat-me) .name { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .seat:not(.seat-me) .plate > div:nth-child(2) { max-width: 100%; }
+  .plate { min-width: 0; padding: 5px 8px 5px 5px; gap: 6px; }
+  .avatar { width: 30px; height: 30px; font-size: .95rem; }
+  .name { font-size: .95rem; }
+  .sub { font-size: .75rem; }
+  .chips { gap: 4px; }
+  .chip { font-size: .72rem; padding: 2px 7px; }
+  /* desni: oznaka delioca unutra; levi i gornji: gore desno kao inače */
+  .seat-right .dealer-chip { left: -6px; top: -6px; }
+  .dealer-chip { width: 22px; height: 22px; font-size: .75rem; top: -6px; right: -6px; }
+
+  .center { inset: 26% 4% 21%; }
+  .trick .slot[data-rel="1"] { right: 4%; }
+  .trick .slot[data-rel="3"] { left: 4%; }
+  .trick .slot[data-rel="2"] { top: 0; }
+  .layout { gap: 5px; }
+
+  .hand .card { margin-left: calc(var(--card-w) * -.32); }
+  .hand-row { grid-template-columns: 1fr; gap: 6px; position: relative; padding: 4px 8px 8px; }
+  .hand-row > .hand-side:first-child { display: none; }
+  /* dugme lebdi IZNAD moje pločice (ne preko nje) — ne sme da menja visinu reda (pa ni stola) */
+  .actions { position: absolute; bottom: calc(100% + 74px); left: 50%; transform: translateX(-50%); z-index: 6; }
+  .actions:empty { display: none; }
   .pick-menu { left: 50%; transform: translateX(-50%); }
+}
+
+/* položen telefon: malo visine — sitnije zaglavlje i pločice, ja u donjem levom uglu */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --card-w: min(15vh, 7.5vw, 60px);
+    --trick-w: min(13vh, 52px);
+    --mini-w: min(7vh, 30px);
+    --back-w: min(6vh, 26px);
+  }
+  .topbar { height: 40px; padding: 2px 12px; }
+  .topbar h1 { font-size: 1rem; }
+  .contract b { font-size: 1.1rem; }
+  .icon-btn { width: 36px; height: 36px; }
+  dialog.menu-pop { top: 40px; }
+  .table { inset: 4% 13% 5%; border-radius: 999px; }
+  .plate { min-width: 0; padding: 4px 8px 4px 4px; gap: 6px; }
+  .avatar { width: 26px; height: 26px; font-size: .85rem; }
+  .name { font-size: .88rem; }
+  .sub { font-size: .7rem; }
+  .plate .g, .plate .g + .sep, .plate .r { display: none; }
+  .seat-me .plate .g { display: inline; }
+  .dealer-chip { width: 20px; height: 20px; font-size: .7rem; top: -6px; right: -6px; }
+  .seat-top { top: 2px; }
+  .seat-top .backs { display: none; }
+  .seat-left, .seat-right { top: 45%; }
+  .seat-left .backs img, .seat-right .backs img { margin-top: calc(var(--back-w) * -1.3); }
+  .seat-me { left: 1%; bottom: 2%; transform: none; flex-direction: row; }
+  .center { inset: 28% 24% 2%; }
+  .layout { gap: 3px; }
+  .hand-row { padding: 2px 12px 4px; gap: 10px; }
 }
 
 /* ===================== ekrani van stola (start, prijava, lobi, čekaonica) ===================== */

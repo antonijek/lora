@@ -3,7 +3,8 @@ import http from 'node:http';
 import path from 'node:path';
 import express from 'express';
 import { Server as SocketIOServer } from 'socket.io';
-import { initDb, flushPersist, topPlayers, matchesForUser } from './db.js';
+import { initDb, flushPersist, topPlayers, matchesForUser, recordVisit } from './db.js';
+import { adminRouter } from './admin.js';
 import { authRouter, verifyToken } from './auth.js';
 import { registerSocketHandlers } from './socket/index.js';
 import { loadPersistedRooms, removeAbandonedRooms, allRooms, status } from './rooms/Room.js';
@@ -21,7 +22,7 @@ async function main(): Promise<void> {
   app.set('trust proxy', 1); // nginx → prava IP adresa za rate limit
   app.use(express.json());
   // Javno je SAMO ono što treba browseru — nikad server/ (baza, .env), docs/, node_modules/.
-  const PUBLIC = /^\/(lora\.html|pravila\.html|app\.js|online\.js|lora\.css|engine\/dist\/[\w.-]+\.js|icons\/cards\/[\w.-]+\.svg)?$/;
+  const PUBLIC = /^\/(lora\.html|pravila\.html|admin\.html|app\.js|online\.js|lora\.css|engine\/dist\/[\w.-]+\.js|icons\/cards\/[\w.-]+\.svg)?$/;
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/') || PUBLIC.test(req.path)) return next();
     res.status(404).end();
@@ -33,6 +34,13 @@ async function main(): Promise<void> {
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, rooms: allRooms().length }));
   app.use('/api', authRouter);
+  app.use('/api/admin', adminRouter);
+  // Brojač posetilaca (i onih bez naloga) — nasumičan id iz browsera, bez ličnih podataka.
+  app.post('/api/visit', (req, res) => {
+    const v = req.body?.v;
+    if (typeof v === 'string' && /^[a-z0-9]{8,32}$/.test(v)) recordVisit(v);
+    res.status(204).end();
+  });
   app.get('/api/leaderboard', (_req, res) => res.json({ players: topPlayers(20) }));
   app.get('/api/matches', (req, res) => {
     try {

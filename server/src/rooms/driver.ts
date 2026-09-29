@@ -22,6 +22,9 @@ let io: Server | null = null;
 export function setIo(server: Server): void {
   io = server;
 }
+export function getIo(): Server | null {
+  return io;
+}
 
 /** Ceo prikaz sobe za jedno mesto (null = gost/lobi). */
 export function buildRoomState(room: Room, mySeat: Position | null) {

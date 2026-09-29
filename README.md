@@ -10,6 +10,7 @@ Web aplikacija za Loru (lore, lorum): vi i 3 računara. Isti principi kao
 - ✅ UI: sto za 4 igrača, prikaz završenog štiha, slaganje po bojama, tabela svih 28 igara, čuvanje partije
 - ✅ Karte: CC0 SVG set iz preferansa (lora koristi istih 32 karte)
 - ✅ **Online** (`server/`, dizajn u [docs/BACKEND.md](docs/BACKEND.md)): prijava istim nalogom kao Preferans, lobi, brza igra, sobe sa kodom/linkom, pozivi, chat, AI popunjava prazna mesta i igra za igrače bez veze, rejting (ELO, samo sa ≥2 čoveka), sobe preživljavaju restart
+- ✅ **Admin panel** (`/admin.html`, isti nalog i admin prava kao Preferans): pregled (online, aktivni igrači danas/7/30 dana, posetioci i oni bez naloga, mečevi, grafikon 30 dana), igrači (rejting, ban za ceo nalog), sobe uživo (udalji igrača, zatvori sobu), istorija mečeva po partijama. Test: `npm run test:admin`
 - 🌐 Uživo: https://lora.antonije.dev/ (pm2 `lora-server`, port 3002)
 - ⏳ Jači AI, PWA, zajedničko jezgro platforme sa preferansom i tablićem
 
