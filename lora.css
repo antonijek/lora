@@ -208,6 +208,19 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
 .result th:first-child, .result td:first-child { text-align: left; }
 .result tr.total td { font-weight: 700; }
 .result td.best { color: var(--good); font-weight: 700; }
+/* "Pogledaj karte" posle partije: svaka ruka u svom redu */
+.cards-dialog { width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; }
+.reveal-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(127,127,127,.25); }
+.reveal-name { width: 96px; flex: none; display: flex; flex-direction: column; }
+.reveal-name span { font-size: .85rem; opacity: .75; }
+.reveal-cards { display: flex; min-width: 0; }
+.reveal-cards .card-img { width: clamp(38px, 8vw, 58px); flex: none; margin-left: calc(clamp(38px, 8vw, 58px) * -.35); }
+.reveal-cards .card-img:first-child { margin-left: 0; }
+@media (max-width: 480px) {
+  .reveal-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .reveal-name { width: auto; flex-direction: row; gap: 8px; align-items: baseline; }
+  .reveal-cards .card-img { width: 11vw; margin-left: -3.5vw; }
+}
 .sheet-dialog { width: min(560px, calc(100vw - 32px)); }
 .sheet-scroll { max-height: 62vh; overflow: auto; }
 .sheet h3 { margin: 14px 0 4px; font-size: .95rem; }

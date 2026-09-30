@@ -396,6 +396,10 @@ function showDealEnd() {
     `<tr><td>${esc(names[p])}</td><td>${fmt(last.points[p])}</td><td class="${v.scores[p] === min ? 'best' : ''}">${v.scores[p]}</td>` +
     (ratingCol ? `<td>${rating.newRatings[p]} (${fmt(rating.deltas[p])})</td>` : '') + '</tr>').join('');
 
+  // "Pogledaj karte": snimak ruku ove partije — ostaje isti i ako sledeća partija krene (online tajmer)
+  revealedSnap = v.revealed ? { title: CONTRACT_NAMES[last.contract], names: [...names], hands: v.revealed, points: [...last.points] } : null;
+  $('viewCardsBtn').hidden = !revealedSnap;
+
   const btn = $('nextDealBtn');
   btn.disabled = false;
   if (finished) btn.textContent = mode === 'online' ? 'Nazad u lobi' : 'Nova igra';
@@ -405,6 +409,26 @@ function showDealEnd() {
 }
 
 const fmt = n => (n > 0 ? `+${n}` : String(n));
+
+let revealedSnap = null;
+function showRevealed() {
+  const r = revealedSnap;
+  if (!r) return;
+  $('cardsTitle').textContent = `Sve karte — ${r.title}`;
+  $('cardsBody').replaceChildren(...r.hands.map((hand, p) => {
+    const row = document.createElement('div');
+    row.className = 'reveal-row';
+    const label = document.createElement('div');
+    label.className = 'reveal-name';
+    label.innerHTML = `<b>${esc(r.names[p])}</b><span>${fmt(r.points[p])}</span>`;
+    const cards = document.createElement('div');
+    cards.className = 'reveal-cards';
+    cards.append(...hand.map(cardImg));
+    row.append(label, cards);
+    return row;
+  }));
+  $('cardsDlg').showModal();
+}
 
 /** Svaki igrač ima svoju tabelu: 7 igara, odigrane sa rezultatima, ostale sive. */
 function renderSheet() {
@@ -494,6 +518,8 @@ $('nextDealBtn').addEventListener('click', () => {
 // Esc ne sme da zatvori kraj partije — bez dugmeta "Dalje" igra bi se zaglavila
 $('dealEnd').addEventListener('cancel', e => e.preventDefault());
 $('dealSheetBtn').addEventListener('click', renderSheet);
+$('viewCardsBtn').addEventListener('click', showRevealed);
+$('closeCardsBtn').addEventListener('click', () => $('cardsDlg').close());
 $('sheetBtn').addEventListener('click', renderSheet);
 $('closeSheetBtn').addEventListener('click', () => $('sheet').close());
 $('menuBtn').addEventListener('click', () => {

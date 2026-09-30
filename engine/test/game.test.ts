@@ -126,3 +126,21 @@ test('podesiv izbor igara', () => {
   const s = playOut(g, ['medium', 'medium', 'medium', 'medium'], 5);
   assert.equal(s.history.length, 8);
 });
+
+test('"Pogledaj karte": tuđe ruke skrivene tokom partije, otkrivene posle nje', () => {
+  const g = new LoraGame({ seed: 7 });
+  const dealt = g.getState().hands;
+  assert.equal(g.getPlayerView(1).revealed, null, 'pri izboru igre nema otkrivenih karata');
+  assert.ok(!('dealt' in g.getPlayerView(1)), 'podeljene ruke nisu u pogledu igrača');
+  g.choose(0, 'MAX');
+  const rng = makeRng(3);
+  let guard = 0;
+  while (g.getState().phase !== 'DEAL_END') {
+    const p = g.getState().turn as Position;
+    assert.equal(g.getPlayerView(p).revealed, null, 'tokom igre nema otkrivenih karata');
+    const a = chooseAction(g.getPlayerView(p), 'medium', rng);
+    if (a.type === 'play') g.play(p, a.cardId);
+    if (++guard > 100) throw new Error('zaglavljeno');
+  }
+  assert.deepEqual(g.getPlayerView(2).revealed, dealt, 'posle partije: sve 4 ruke kako su podeljene');
+});

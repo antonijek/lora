@@ -36,6 +36,7 @@ export class LoraGame {
       used: [[], [], [], []],
       turn: 0,
       hands: [[], [], [], []],
+      dealt: [[], [], [], []],
       taken: [[], [], [], []],
       trickCounts: [0, 0, 0, 0],
       trick: [],
@@ -57,6 +58,7 @@ export class LoraGame {
     g.state = structuredClone(state);
     g.state.missing ??= [[], [], [], []]; // snimci pre ovog polja
     g.state.passes ??= [0, 0, 0, 0];
+    g.state.dealt ??= [[], [], [], []];
     return g;
   }
 
@@ -69,12 +71,15 @@ export class LoraGame {
   }
 
   getPlayerView(me: Position): PlayerView {
-    const { hands, ...rest } = this.state;
+    const { hands, dealt, ...rest } = this.state;
     const legal = this.legalCards(me);
+    // tuđe karte tek kad je partija gotova — tada ih svi za stolom smeju videti
+    const over = this.state.phase === 'DEAL_END' || this.state.phase === 'MATCH_END';
     return structuredClone({
       ...rest,
       me,
       hand: hands[me],
+      revealed: over && dealt.some(h => h.length) ? dealt : null,
       handCounts: hands.map(h => h.length),
       legal: legal.map(c => c.id),
       mustPass: this.state.phase === 'LAYOUT' && this.state.turn === me && legal.length === 0,
@@ -161,6 +166,7 @@ export class LoraGame {
     s.turn = next(s.dealer);
     const deck = shuffle(createDeck(), this.rng);
     s.hands = [0, 1, 2, 3].map(i => sortHand(deck.slice(i * HAND_SIZE, (i + 1) * HAND_SIZE)));
+    s.dealt = structuredClone(s.hands);
     s.taken = [[], [], [], []];
     s.trickCounts = [0, 0, 0, 0];
     s.trick = [];

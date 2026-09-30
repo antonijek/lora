@@ -84,6 +84,8 @@ export interface LoraState {
   used: ContractId[][];
   turn: Position;
   hands: Card[][];
+  /** Karte podeljene na početku ove partije (za "Pogledaj karte" posle partije). */
+  dealt: Card[][];
   /** Karte koje je igrač odneo u štihovima ove partije. */
   taken: Card[][];
   trickCounts: number[];
@@ -107,9 +109,11 @@ export interface LoraState {
   winners: Position[];
 }
 
-export interface PlayerView extends Omit<LoraState, 'hands'> {
+export interface PlayerView extends Omit<LoraState, 'hands' | 'dealt'> {
   me: Position;
   hand: Card[];
+  /** Sve četiri podeljene ruke — SAMO kad je partija gotova (DEAL_END/MATCH_END), inače null. */
+  revealed: Card[][] | null;
   handCounts: number[];
   legal: CardId[];
   mustPass: boolean;
