@@ -133,16 +133,16 @@ function renderSeat(c, p, relPos, showTrick) {
 
   const plate = document.createElement('div');
   plate.className = 'plate' + (active ? ' active' : '') + (info && !info.connected ? ' offline' : '');
-  // span-ovi: na telefonu se štihovi prelamaju u novi red, a "igre" i rejting kriju (uske pločice)
+  // span: na telefonu se štihovi prelamaju u novi red (uske pločice)
   const tricks = v.phase === 'TRICKS' ? `<span class="tr"><span class="sep"> · </span>štihova <b>${v.trickCounts[p]}</b></span>` : '';
-  const cards = p !== c.me ? `<span class="sep"> · </span>karata <b>${v.handCounts[p]}</b>` : '';
   const tag = info?.kind === 'ai' && !String(info.name).includes('(AI)') ? '<span class="ai-tag">AI</span>'
     : info && !info.connected ? '<span class="ai-tag">bez veze</span>' : '';
+  // rejting samo za ljude u online igri — kao mali broj pored imena
+  const rating = info?.kind === 'human' ? `<span class="rt">${info.rating}</span>` : '';
   plate.innerHTML =
     `<div class="avatar" style="background:${COLORS[p]}">${esc(String(names[p])[0] ?? '?')}</div>` +
-    `<div><div class="name">${esc(names[p])}${tag}</div>` +
-    `<div class="sub">poena <b>${v.scores[p]}</b>${tricks}</div>` +
-    `<div class="sub"><span class="g">igre ${v.used[p].length}/${DEFAULT_CONTRACTS.length}</span>${cards}${info && p !== c.me ? `<span class="r"> · rejting ${info.rating}</span>` : ''}</div></div>` +
+    `<div><div class="name">${esc(names[p])}${rating}${tag}</div>` +
+    `<div class="sub">poena <b>${v.scores[p]}</b>${tricks}</div></div>` +
     (v.dealer === p ? '<span class="dealer-chip" title="Delio">D</span>' : '');
 
   const chips = document.createElement('div');
