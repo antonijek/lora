@@ -17,6 +17,7 @@
     <div class="contract"><b id="contractName"></b></div>
     <div class="top-buttons">
       <button id="chatBtn" class="icon-btn" aria-label="Chat" title="Chat" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><span id="chatBadge" class="badge" hidden></span></button>
+      <a id="adminBtn" class="icon-btn admin-only" href="./admin.html" aria-label="Admin panel" title="Admin panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.2-2.9 7.7-7 9-4.1-1.3-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg></a>
       <button id="sheetBtn" class="icon-btn" aria-label="Tabela" title="Tabela"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M4 15h16M10 4v16"/></svg></button>
       <button id="menuBtn" class="icon-btn" aria-label="Meni" title="Meni"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     </div>
@@ -80,6 +81,7 @@
       <button id="goOnlineBtn" class="btn primary big">Igraj online</button>
       <button id="goLocalBtn" class="btn big">Igraj protiv računara</button>
       <a class="link" href="./pravila.html">Pravila igre</a>
+      <a class="admin-link admin-only" href="./admin.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.2-2.9 7.7-7 9-4.1-1.3-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Admin panel</a>
     </div>
   </section>
 
@@ -98,23 +100,26 @@
   </section>
 
   <section id="lobbyScreen" class="screen" hidden>
-    <div class="panel wide">
-      <div class="lobby-head">
-        <h2>Lobi</h2>
-        <div class="me-box"><span id="lobbyMe"></span><button id="logoutBtn" class="link" type="button">Odjava</button></div>
+    <div class="panel lobby">
+      <div class="lobby-top">
+        <button class="link backHome" type="button">← Početna</button>
+        <div class="me-box"><span id="lobbyMe"></span><a class="admin-link admin-only" href="./admin.html" title="Admin panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.2-2.9 7.7-7 9-4.1-1.3-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Admin</a><button id="logoutBtn" class="link" type="button">Odjava</button></div>
       </div>
+      <h2>Online Lora</h2>
       <div class="lobby-actions">
-        <button id="quickBtn" class="btn primary big">Brza igra</button>
-        <button id="createBtn" class="btn big">Napravi sobu</button>
-        <form id="joinForm" class="join"><input id="joinCode" placeholder="Kod sobe" maxlength="5" autocapitalize="characters"><button class="btn" type="submit">Uđi</button></form>
+        <button id="quickBtn" class="action primary" type="button"><b>Brza igra</b><span>Uđi u prvu slobodnu sobu. Prazna mesta popunjava računar.</span></button>
+        <button id="createBtn" class="action" type="button"><b>Napravi sobu</b><span>Pozovi prijatelje kodom ili linkom.</span></button>
       </div>
+      <form id="joinForm" class="join">
+        <label for="joinCode">Imaš kod sobe?</label>
+        <div class="join-row"><input id="joinCode" placeholder="npr. 7K2QX" maxlength="5" autocapitalize="characters" autocomplete="off"><button class="btn" type="submit">Uđi</button></div>
+      </form>
       <p id="lobbyError" class="error" role="alert"></p>
       <div class="lobby-cols">
-        <div><h3>Otvorene sobe</h3><ul id="roomList" class="list"></ul></div>
-        <div><h3>Najbolji igrači</h3><ol id="leaderboard" class="list"></ol></div>
+        <section class="box"><h3>Otvorene sobe</h3><ul id="roomList" class="list"></ul></section>
+        <section class="box"><h3>Online sada <span id="onlineCount" class="count"></span></h3><ul id="onlineList" class="list"></ul></section>
+        <section class="box"><h3>Najbolji igrači</h3><ol id="leaderboard" class="list"></ol></section>
       </div>
-      <p class="muted small" id="onlineCount"></p>
-      <button class="link backHome" type="button">← Početna</button>
     </div>
   </section>
 

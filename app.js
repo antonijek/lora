@@ -563,6 +563,13 @@ if (!FAST) {
   fetch('api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ v: vid }) }).catch(() => {});
 }
 
+// admin prečica (ikonica u zaglavlju, lobiju i na početnom ekranu) — samo za admin nalog
+try {
+  const tok = localStorage.getItem('lora_token');
+  if (tok && !FAST) fetch('api/me', { headers: { Authorization: `Bearer ${tok}` } })
+    .then(r => r.json()).then(d => document.body.classList.toggle('is-admin', !!d.user?.is_admin)).catch(() => {});
+} catch {}
+
 const params = new URLSearchParams(location.search);
 if (params.has('room')) { rememberMode('online'); online.start(); }
 else if (params.has('local')) startLocal();

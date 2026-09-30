@@ -68,6 +68,7 @@ export function initOnline(hooks) {
   $('logoutBtn').addEventListener('click', () => {
     token = null;
     try { localStorage.removeItem(TOKEN_KEY); } catch {}
+    document.body.classList.remove('is-admin');
     socket?.disconnect();
     socket = null;
     showLogin();
@@ -149,7 +150,7 @@ export function initOnline(hooks) {
 
     // ko sam (za lobi)
     fetch(`${BASE}api/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => { me = d.user; renderMe(); }).catch(() => {});
+      .then(r => r.json()).then(d => { me = d.user; document.body.classList.toggle('is-admin', !!me?.is_admin); renderMe(); }).catch(() => {});
   }
 
   const emit = (ev, payload) => new Promise(resolve => {
@@ -166,8 +167,11 @@ export function initOnline(hooks) {
 
   // ---------------------------------------------------------------- lobi
 
+  let myRating = null;
   function renderMe() {
-    $('lobbyMe').innerHTML = me ? `Prijavljeni ste kao <b>${esc(me.name)}</b>` : '';
+    $('lobbyMe').innerHTML = me
+      ? `<span class="who"><span class="me-av">${esc(String(me.name)[0] ?? '?')}</span><b>${esc(me.name)}</b>${myRating ? ` <span class="muted small">${myRating}</span>` : ''}</span>`
+      : '';
   }
 
   function showLobby() {
@@ -192,12 +196,18 @@ export function initOnline(hooks) {
       fetch(`${BASE}api/leaderboard`).then(r => r.json()).catch(() => ({ players: [] })),
     ]);
     $('roomList').innerHTML = rooms.length
-      ? rooms.map(r => `<li><span>Soba <b class="code">${esc(r.code)}</b> · ${esc(r.host ?? '')} · ${r.players}/4</span><button class="btn" data-join="${esc(r.code)}">Uđi</button></li>`).join('')
-      : '<li class="empty">Nema otvorenih soba — napravite svoju ili kliknite „Brza igra“.</li>';
-    $('leaderboard').innerHTML = board.players?.length
-      ? board.players.slice(0, 10).map((p, i) => `<li><span>${i + 1}. ${esc(p.name)}</span><b>${p.rating}</b></li>`).join('')
+      ? rooms.map(r => `<li><span class="who"><b class="code">${esc(r.code)}</b><span class="nm muted small">${esc(r.host ?? '')} · ${r.players}/4</span></span><button class="btn" data-join="${esc(r.code)}">Uđi</button></li>`).join('')
+      : '<li class="empty">Nema otvorenih soba. Klikni „Brza igra“ ili napravi svoju.</li>';
+    $('onlineList').innerHTML = users.length
+      ? users.map(u => `<li><span class="who"><span class="dot${u.busy ? ' busy' : ''}"></span><span class="nm">${esc(u.name)}</span></span><span class="muted small">${u.busy ? 'u meču' : u.rating}</span></li>`).join('')
+      : '<li class="empty">Samo si ti trenutno ovde.</li>';
+    $('onlineCount').textContent = users.length + 1;
+    const players = board.players ?? [];
+    $('leaderboard').innerHTML = players.length
+      ? players.slice(0, 10).map((p, i) => `<li${me && p.user_id === me.id ? ' class="mine"' : ''}><span class="who"><span class="rank r${i + 1}">${i + 1}</span><span class="nm">${esc(p.name)}</span></span><b>${p.rating}</b></li>`).join('')
       : '<li class="empty">Još nema rangiranih mečeva.</li>';
-    $('onlineCount').textContent = `Online: ${users.length + 1}`;
+    const mine = me && players.find(p => p.user_id === me.id);
+    if (mine && mine.rating !== myRating) { myRating = mine.rating; renderMe(); }
   }
 
   $('roomList').addEventListener('click', e => {

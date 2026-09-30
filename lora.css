@@ -336,13 +336,49 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
 .small { font-size: .85rem; }
 .error { color: #ff8a8a; margin: 0; min-height: 1.2em; font-size: .9rem; }
 
-.lobby-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.me-box { display: flex; gap: 12px; align-items: center; color: var(--muted); }
+/* admin prečica — vidi je samo admin (klasu is-admin postavlja app.js/online.js iz /api/me) */
+body:not(.is-admin) .admin-only { display: none !important; }
+.admin-link { display: inline-flex; align-items: center; gap: 5px; color: var(--accent); font-weight: 600; font-size: .9rem; text-decoration: none; align-self: center; }
+.admin-link svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#lobbyError:empty { display: none; }
+
+/* lobi */
+.panel.lobby { width: min(920px, 100%); gap: 14px; }
+.lobby-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: .92rem; }
+.lobby-top .link { align-self: auto; }
+.me-box { display: flex; gap: 10px; align-items: center; color: var(--muted); }
 .me-box b { color: var(--ink); }
-.lobby-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.join { display: flex; gap: 6px; }
-.join input { width: 8.5em; text-transform: uppercase; letter-spacing: .1em; }
-.lobby-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.me-av { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; background: #2f6fd0; color: #fff; font-weight: 800; font-size: .85rem; }
+.lobby-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.action {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left;
+  font: inherit; padding: 16px 18px; border-radius: 14px; cursor: pointer;
+  background: rgba(255,255,255,.05); color: var(--ink); border: 1px solid var(--plate-edge);
+  transition: transform .12s, border-color .12s, background .12s;
+}
+.action b { font-size: 1.2rem; }
+.action span { font-size: .88rem; color: var(--muted); }
+.action:hover, .action:focus-visible { transform: translateY(-2px); border-color: var(--accent); outline: none; }
+.action.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.action.primary span { color: rgba(43,33,0,.75); }
+.join { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.join label { font-weight: 600; font-size: .92rem; color: var(--muted); }
+.join-row { display: flex; gap: 6px; }
+.join input { width: 9em; text-transform: uppercase; letter-spacing: .12em; }
+.join input::placeholder { text-transform: none; letter-spacing: normal; }
+.lobby-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.box { background: rgba(255,255,255,.03); border: 1px solid var(--plate-edge); border-radius: 14px; padding: 14px; min-width: 0; }
+.box h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.count { font-size: .75rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: rgba(95,208,138,.15); color: #5fd08a; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #5fd08a; flex: none; }
+.dot.busy { background: var(--accent); }
+.who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.who .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: .75rem; font-weight: 800; background: rgba(255,255,255,.1); flex: none; }
+.rank.r1 { background: #f2c14e; color: #2b2100; }
+.rank.r2 { background: #c9d1d6; color: #1b1b1b; }
+.rank.r3 { background: #c98a4b; color: #1b1b1b; }
+.list li.mine { outline: 1px solid var(--accent); }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 ol.list { counter-reset: r; }
 .list li {
@@ -382,7 +418,9 @@ ol.list { counter-reset: r; }
 .plate .ai-tag { font-size: .7rem; color: var(--muted); font-weight: 600; margin-left: 4px; }
 
 @media (max-width: 640px) {
-  .lobby-cols { grid-template-columns: 1fr; }
+  .lobby-cols, .lobby-actions { grid-template-columns: 1fr; }
+  .action { padding: 12px 14px; }
+  .action b { font-size: 1.05rem; }
   .wait-seats { grid-template-columns: 1fr; }
   .panel { padding: 18px; }
   /* na telefonu chat ide gore, da ne pokriva karte u ruci */
