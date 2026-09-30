@@ -159,15 +159,22 @@ function startNextDeal(room: Room): void {
 // ---------------------------------------------------------------- rejting
 
 const K = 32;
+/**
+ * Razlika u poenima koja se računa kao puna pobeda u duelu. Ranije je važilo
+ * samo "ko ima manje" — 30 prema 31 poena je davalo isto kao 30 prema 80
+ * (±5 rejtinga za skoro nerešen meč). Sada: jednaki poeni = 0.5, razlika od
+ * MARGIN ili više = 1 / 0, između srazmerno. Zbir promena ostaje nula.
+ */
+const MARGIN = 40;
 
-/** ELO za više igrača: svaki par je "duel" (manje poena = pobeda), deljeno sa n−1. */
+/** ELO za više igrača: svaki par je "duel" (manje poena = bolje, srazmerno razlici), deljeno sa n−1. */
 export function ratingDeltas(scores: number[], ratings: number[]): number[] {
   const n = scores.length;
   return scores.map((si, i) => {
     let d = 0;
     for (let j = 0; j < n; j++) {
       if (j === i) continue;
-      const actual = si < scores[j] ? 1 : si === scores[j] ? 0.5 : 0;
+      const actual = Math.min(1, Math.max(0, 0.5 + (scores[j] - si) / (2 * MARGIN)));
       const expected = 1 / (1 + 10 ** ((ratings[j] - ratings[i]) / 400));
       d += K * (actual - expected);
     }

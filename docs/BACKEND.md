@@ -106,8 +106,7 @@ Server → klijent: `room:none`, `room:state` (ceo prikaz sobe za tog igrača), 
 ## 6. Rejting
 
 - Svako ima lora rejting (početno 1000) u tabeli `lora_players`, odvojen od preferansa.
-- ELO za više igrača: svaki par igrača je jedan „duel“ (manje poena pobeđuje), K = 32,
-  a zbir se deli sa 3.
+- ELO za više igrača: svaki par igrača je jedan „duel“ (manje poena je bolje), K = 32. Duel nije samo pobeda ili poraz: jednaki poeni daju 0,5, razlika od 40 i više poena je puna pobeda, a između se računa srazmerno. Tako skoro isti poeni više ne donose ±5. Zbir iz sva tri duela se deli sa 3.
 - AI ima fiksnih 1000 i ne menja se.
 - **Rangirano je samo ako su bar 2 čoveka seli za sto na početku.** Protiv 3 AI se rejting
   ne menja, da se ne bi „farmao“ protiv računara.
