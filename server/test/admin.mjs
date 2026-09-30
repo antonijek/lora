@@ -98,6 +98,10 @@ try {
   const pl2 = (await api('/api/admin/players', null, adminTok)).data.players;
   check(rr.status === 200 && pl2[0].rating === 1234, 'promena rejtinga');
   check((await api(`/api/admin/players/${pl[0].user_id}/rating`, { rating: -5 }, adminTok)).status === 400, 'loš rejting → 400');
+  const rc = await api('/api/admin/recompute-ratings', {}, adminTok);
+  const pl3 = (await api('/api/admin/players', null, adminTok)).data.players;
+  check(rc.status === 200 && rc.data.matches === 0 && pl3[0].rating === 1000, 'preračunavanje rejtinga (bez rangiranih mečeva → 1000)');
+  check((await api('/api/admin/recompute-ratings', {}, anaTok)).status === 403, 'preračunavanje samo za admina');
 
   // --- sobe: Ana pravi sobu i počinje meč sa 3 AI, admin je udaljava
   const { code } = await emit(ana, 'room:create', {});

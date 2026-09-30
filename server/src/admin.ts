@@ -6,14 +6,14 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { verifyToken, fetchMe } from './auth.js';
-import { all, get, run } from './db.js';
+import { all, get, run, recomputeRatings } from './db.js';
 import type { Position } from '../../engine/dist/types.js';
 import type { Room, ChatMessage } from './rooms/Room.js';
 import {
   SEATS, CHAT_LOG_LIMIT, allRooms, getRoom, removeRoom, status, humanSeats,
   getUserLocation, clearUserLocation,
 } from './rooms/Room.js';
-import { broadcast, getIo, isPaused } from './rooms/driver.js';
+import { broadcast, getIo, isPaused, ratingDeltas } from './rooms/driver.js';
 import { listOnlineUsers, getSocketIdsForUser } from './presence.js';
 
 const AUTH_URL = () => process.env.AUTH_URL || 'http://127.0.0.1:3001';
@@ -234,6 +234,16 @@ adminRouter.post('/players/:id/ban', async (req: AdminRequest, res) => {
     for (const sid of getSocketIdsForUser(id)) getIo()?.sockets.sockets.get(sid)?.disconnect(true);
   }
   res.json({ ok: true, banned });
+});
+
+// Posle promene formule: svi rangirani mečevi ponovo, redom, trenutnom formulom.
+adminRouter.post('/recompute-ratings', (_req, res) => {
+  const result = recomputeRatings(ratingDeltas);
+  // igrači za stolom odmah vide nov rejting
+  for (const room of allRooms()) for (const seat of room.seats) {
+    if (seat.kind === 'human' && seat.userId !== null) seat.rating = get<{ rating: number }>('SELECT rating FROM lora_players WHERE user_id = ?', [seat.userId])?.rating ?? seat.rating;
+  }
+  res.json({ ok: true, ...result });
 });
 
 adminRouter.get('/rooms', (_req, res) => res.json({ rooms: allRooms().map(roomDetails) }));

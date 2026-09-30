@@ -169,7 +169,7 @@
     <!-- IGRAČI -->
     <section class="panel" data-tab="igraci">
       <div class="card">
-        <h2>Igrači <span class="right"><input id="search" type="search" placeholder="Traži ime ili email"><button class="refresh">Osveži</button></span></h2>
+        <h2>Igrači <span class="right"><input id="search" type="search" placeholder="Traži ime ili email"><button class="refresh">Osveži</button><button id="recompute" title="Svi rangirani mečevi ponovo, trenutnom formulom">Preračunaj rejting</button></span></h2>
         <div class="scroll"><table class="players-table">
           <thead><tr><th>Ime</th><th>Email</th><th class="num">Rejting</th><th class="num">Mečeva</th><th>Poslednji put</th><th>Registrovan</th><th>Status</th><th></th></tr></thead>
           <tbody id="players"></tbody>
@@ -425,6 +425,15 @@ $('players').addEventListener('click', e => {
     if (!confirm(ban ? `Banovati ${p.name}? Ne moći će da igra ni Loru ni Preferans, a iz trenutnog meča ga menja AI.` : `Skinuti ban igraču ${p.name}?`)) return;
     act(async () => { await api(`admin/players/${p.user_id}/ban`, { method: 'POST', body: JSON.stringify({ banned: ban }) }); await loadPlayers(); });
   }
+});
+
+$('recompute').addEventListener('click', () => {
+  if (!confirm('Preračunati rejting svih igrača iz svih rangiranih mečeva trenutnom formulom? Ručne izmene rejtinga se gube.')) return;
+  act(async () => {
+    const r = await api('admin/recompute-ratings', { method: 'POST', body: '{}' });
+    alert(`Gotovo: ${r.matches} rangiranih mečeva, ${r.players} igrača.`);
+    await loadPlayers();
+  });
 });
 
 // ---------------------------------------------------------------- sobe

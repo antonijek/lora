@@ -171,3 +171,34 @@ export function deleteActiveRoom(code: string): void {
 export function getAllActiveRooms(): { code: string; state_json: string }[] {
   return all('SELECT code, state_json FROM active_rooms');
 }
+
+// ---------- preračunavanje rejtinga (posle promene formule) ----------
+
+/**
+ * Vrati sve na 1000 i ponovo odigraj sve rangirane mečeve redom, novom formulom.
+ * Ažurira i rating_deltas_json u istoriji. Ručne izmene rejtinga iz admina se gube.
+ */
+export function recomputeRatings(deltasFor: (scores: number[], ratings: number[]) => number[]): { matches: number; players: number } {
+  run('UPDATE lora_players SET rating = 1000, games_played = 0');
+  const ratings = new Map<number, number>();
+  const games = new Map<number, number>();
+  const rows = all<{ id: number; seats_json: string; scores_json: string }>(
+    'SELECT id, seats_json, scores_json FROM match_log WHERE rated = 1 ORDER BY id',
+  );
+  for (const m of rows) {
+    const seats = JSON.parse(m.seats_json) as { userId: number | null }[];
+    const scores = JSON.parse(m.scores_json) as number[];
+    const before = seats.map(s => (s.userId !== null ? ratings.get(s.userId) ?? 1000 : 1000));
+    const deltas = deltasFor(scores, before);
+    seats.forEach((s, i) => {
+      if (s.userId === null) return;
+      ratings.set(s.userId, before[i] + deltas[i]);
+      games.set(s.userId, (games.get(s.userId) ?? 0) + 1);
+    });
+    run('UPDATE match_log SET rating_deltas_json = ? WHERE id = ?', [JSON.stringify(deltas), m.id]);
+  }
+  for (const [uid, r] of ratings) {
+    run('UPDATE lora_players SET rating = ?, games_played = ? WHERE user_id = ?', [r, games.get(uid) ?? 0, uid]);
+  }
+  return { matches: rows.length, players: ratings.size };
+}
