@@ -155,12 +155,15 @@ dialog.menu-pop::backdrop { background: rgba(0,0,0,.3); }
 /* stalna visina (karta je 5:7) — inače se sto širi kad se ruka isprazni */
 .hand-row { min-height: calc(var(--card-w) * 1.4 + 14px); }
 .actions { justify-self: start; }
-.hand .card { width: var(--card-w); margin-left: calc(var(--card-w) * -.22); transition: transform .12s; flex: none; }
+.hand .card { position: relative; width: var(--card-w); margin-left: calc(var(--card-w) * -.22); transition: transform .12s; flex: none; }
 .hand .card:first-child { margin-left: 0; }
 .hand .card.legal { cursor: pointer; }
 .hand .card.legal:hover, .hand .card.legal:focus-visible { transform: translateY(-12px); outline: none; }
 .hand .card.illegal { filter: brightness(.5); }
 .hand.my-turn .card.legal .card-img { box-shadow: 0 0 0 2px var(--accent), 0 2px 5px rgba(0,0,0,.4); }
+/* karta koja sme da se odigra izlazi iznad susednih (inače je vidi samo leva ivica) i malo se podiže */
+.hand.my-turn .card.legal { z-index: 2; transform: translateY(-8px); }
+.hand.my-turn .card.legal:hover, .hand.my-turn .card.legal:focus-visible { transform: translateY(-16px); }
 
 /* ---------- izbor igre: padajući meni uz vaše ime ---------- */
 .picker { position: relative; }
