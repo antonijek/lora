@@ -110,7 +110,7 @@
 
 <section id="login" class="card" hidden>
   <h2>Lora admin — prijava</h2>
-  <p class="muted">Isti nalog kao za Preferans i Loru. Potrebna su admin prava.</p>
+  <p class="muted">Prijavite se nalogom koji ima admin prava.</p>
   <form id="loginForm">
     <input id="email" type="email" placeholder="Email" autocomplete="username" required>
     <input id="password" type="password" placeholder="Lozinka" autocomplete="current-password" required>
@@ -125,7 +125,7 @@
     <span id="who" class="who"></span>
     <nav>
       <a href="./">Igra</a>
-      <a href="https://preferans.igrajmo.online/admin.html" target="_blank" rel="noopener" title="Nalozi (email, ime, brisanje, admin prava) su zajednički i uređuju se u Preferans adminu">Nalozi (Preferans admin)</a>
+      <a href="https://preferans.igrajmo.online/admin.html" target="_blank" rel="noopener" title="Ime, email, brisanje naloga i admin prava">Nalozi</a>
       <a href="#" id="logout">Odjava</a>
     </nav>
   </header>
@@ -174,7 +174,7 @@
           <thead><tr><th>Ime</th><th>Email</th><th class="num">Rejting</th><th class="num">Mečeva</th><th>Poslednji put</th><th>Registrovan</th><th>Status</th><th></th></tr></thead>
           <tbody id="players"></tbody>
         </table></div>
-        <p class="muted" style="font-size:.85rem">Ban važi za ceo nalog, dakle i za Preferans. Ime, email, brisanje naloga i admin prava menjaju se u Preferans adminu.</p>
+        <p class="muted" style="font-size:.85rem">Ban važi za ceo nalog. Ime, email, brisanje naloga i admin prava menjaju se u delu „Nalozi“ (link gore desno).</p>
       </div>
     </section>
 
@@ -422,7 +422,7 @@ $('players').addEventListener('click', e => {
   if (b) {
     const p = players.find(x => x.user_id == b.dataset.ban);
     const ban = b.dataset.banned !== '1';
-    if (!confirm(ban ? `Banovati ${p.name}? Ne moći će da igra ni Loru ni Preferans, a iz trenutnog meča ga menja AI.` : `Skinuti ban igraču ${p.name}?`)) return;
+    if (!confirm(ban ? `Banovati ${p.name}? Neće moći da igra, a iz trenutnog meča ga menja AI.` : `Skinuti ban igraču ${p.name}?`)) return;
     act(async () => { await api(`admin/players/${p.user_id}/ban`, { method: 'POST', body: JSON.stringify({ banned: ban }) }); await loadPlayers(); });
   }
 });
