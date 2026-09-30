@@ -397,7 +397,7 @@ function showDealEnd() {
     (ratingCol ? `<td>${rating.newRatings[p]} (${fmt(rating.deltas[p])})</td>` : '') + '</tr>').join('');
 
   // "Pogledaj karte": snimak ruku ove partije — ostaje isti i ako sledeća partija krene (online tajmer)
-  revealedSnap = v.revealed ? { title: CONTRACT_NAMES[last.contract], names: [...names], hands: v.revealed, points: [...last.points] } : null;
+  revealedSnap = v.revealed ? { title: CONTRACT_NAMES[last.contract], chooser: names[last.chooser], names: [...names], hands: v.revealed, points: [...last.points] } : null;
   $('viewCardsBtn').hidden = !revealedSnap;
 
   const btn = $('nextDealBtn');
@@ -414,13 +414,16 @@ let revealedSnap = null;
 function showRevealed() {
   const r = revealedSnap;
   if (!r) return;
-  $('cardsTitle').textContent = `Sve karte — ${r.title}`;
+  $('cardsTitle').textContent = r.title;
+  $('cardsSub').textContent = `igra: ${r.chooser} · sve karte kako su podeljene`;
   $('cardsBody').replaceChildren(...r.hands.map((hand, p) => {
     const row = document.createElement('div');
     row.className = 'reveal-row';
     const label = document.createElement('div');
     label.className = 'reveal-name';
-    label.innerHTML = `<b>${esc(r.names[p])}</b><span>${fmt(r.points[p])}</span>`;
+    const cls = r.points[p] > 0 ? 'plus' : r.points[p] < 0 ? 'minus' : '';
+    label.innerHTML = `<span class="avatar" style="background:${COLORS[p]}">${esc(String(r.names[p])[0] ?? '?')}</span>` +
+      `<b>${esc(r.names[p])}</b><span class="pts ${cls}">${fmt(r.points[p])}</span>`;
     const cards = document.createElement('div');
     cards.className = 'reveal-cards';
     cards.append(...hand.map(cardImg));
@@ -462,6 +465,47 @@ function toast(msg) {
   t.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ---------- potvrde i obaveštenja (u stilu igre, umesto confirm/alert/prompt) ----------
+
+const ICONS = {
+  warn: '<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>',
+  info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
+  link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+};
+
+/** Prozor za potvrdu. Vraća Promise<boolean>. cancel: null = samo jedno dugme. */
+function ask({ title, text = '', ok = 'U redu', cancel = 'Otkaži', danger = false, icon = danger ? 'warn' : 'info', extra = null }) {
+  const dlg = $('askDlg');
+  $('askIcon').innerHTML = ICONS[icon] ?? ICONS.info;
+  $('askIcon').className = 'ask-icon' + (danger ? ' danger' : '');
+  $('askTitle').textContent = title;
+  $('askText').textContent = text;
+  $('askExtra').replaceChildren(...(extra ? [extra] : []));
+  $('askOk').textContent = ok;
+  $('askOk').className = 'btn ' + (danger ? 'danger' : 'primary');
+  $('askCancel').textContent = cancel ?? '';
+  $('askCancel').hidden = cancel === null;
+  return new Promise(resolve => {
+    const done = v => { dlg.removeEventListener('close', onClose); resolve(v); };
+    const onClose = () => done(dlg.returnValue === 'ok');
+    dlg.returnValue = '';
+    dlg.addEventListener('close', onClose);
+    $('askOk').onclick = () => dlg.close('ok');
+    $('askCancel').onclick = () => dlg.close('');
+    dlg.showModal();
+  });
+}
+
+/** Traka sa obaveštenjem pri vrhu ekrana (neko napustio meč, vratio se...). */
+function notify(text) {
+  const n = document.createElement('div');
+  n.className = 'notice';
+  n.innerHTML = ICONS.info;
+  n.append(text);
+  $('notices').appendChild(n);
+  setTimeout(() => { n.classList.add('out'); setTimeout(() => n.remove(), 300); }, 4500);
 }
 
 // ---------- ekrani / režimi ----------
@@ -539,9 +583,11 @@ $('homeBtn').addEventListener('click', () => {
   else goHome();
 });
 $('leaveMatchBtn').addEventListener('click', () => {
-  if (!confirm('Napustiti meč? AI će igrati umesto vas do kraja, a možete se vratiti istim kodom sobe.')) return;
   $('menu').close();
-  online.leaveMatch();
+  ask({
+    title: 'Napustiti meč?', text: 'Računar će igrati umesto vas do kraja. Možete se vratiti istim kodom sobe.',
+    ok: 'Napusti meč', cancel: 'Ostani', danger: true,
+  }).then(yes => { if (yes) online.leaveMatch(); });
 });
 $('goLocalBtn').addEventListener('click', startLocal);
 $('goOnlineBtn').addEventListener('click', () => { rememberMode('online'); online.start(); });
@@ -573,6 +619,8 @@ online = initOnline({
     lastView = null;
   },
   toast,
+  ask,
+  notify,
   goHome,
   showScreen,
 });

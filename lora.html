@@ -69,10 +69,20 @@
   </dialog>
 
   <dialog id="cardsDlg" class="cards-dialog">
-    <h2 id="cardsTitle">Sve karte ove partije</h2>
+    <div class="cards-head"><h2 id="cardsTitle">Sve karte</h2><span id="cardsSub"></span></div>
     <div id="cardsBody"></div>
     <div class="dialog-buttons"><button id="closeCardsBtn" class="btn primary">Zatvori</button></div>
   </dialog>
+
+  <!-- potvrde i obaveštenja u stilu igre (umesto confirm/alert/prompt pregledača) -->
+  <dialog id="askDlg" class="ask-dialog">
+    <div id="askIcon" class="ask-icon" aria-hidden="true"></div>
+    <h2 id="askTitle"></h2>
+    <p id="askText" class="ask-text"></p>
+    <div id="askExtra"></div>
+    <div class="dialog-buttons"><button id="askCancel" class="btn" type="button">Otkaži</button><button id="askOk" class="btn primary" type="button">U redu</button></div>
+  </dialog>
+  <div id="notices" class="notices" aria-live="polite"></div>
 
   <dialog id="sheet" class="sheet-dialog">
     <h2>Tabela</h2>

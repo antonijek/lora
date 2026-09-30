@@ -277,7 +277,13 @@ export function initOnline(hooks) {
   $('copyLinkBtn').addEventListener('click', async () => {
     const url = `${location.origin}${BASE}?room=${state?.code ?? ''}`;
     try { await navigator.clipboard.writeText(url); $('copyLinkBtn').textContent = 'Kopirano ✓'; }
-    catch { prompt('Link sobe:', url); }
+    catch {
+      const input = document.createElement('input');
+      input.value = url;
+      input.readOnly = true;
+      input.addEventListener('focus', () => input.select());
+      hooks.ask({ title: 'Link sobe', text: 'Kopirajte link i pošaljite ga prijateljima.', ok: 'Zatvori', cancel: null, icon: 'link', extra: input });
+    }
     setTimeout(() => { $('copyLinkBtn').textContent = 'Kopiraj link'; }, 2000);
   });
   $('inviteBtn').addEventListener('click', async () => {
@@ -316,6 +322,10 @@ export function initOnline(hooks) {
       $('chatBadge').textContent = unread;
       $('chatBadge').hidden = false;
       if (m.name !== 'Sistem') hooks.toast(`${m.name}: ${m.text}`.slice(0, 80));
+    }
+    // sistemske poruke (neko napustio meč, vratio se, udaljen...) kao traka pri vrhu
+    if (fresh && m.name === 'Sistem' && $('chatPanel').hidden) {
+      hooks.notify(m.text);
     }
   }
 

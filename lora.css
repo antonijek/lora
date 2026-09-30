@@ -12,21 +12,16 @@
   --accent-ink: #2b2100;
   --plate: rgba(8, 20, 14, .82);
   --plate-edge: rgba(255, 255, 255, .14);
-  --dialog-bg: #fbfaf7;
-  --dialog-ink: #1b1b1b;
-  --good: #1d8a4a;
+  /* prozori su uvek u bojama stola (ranije beli u svetloj temi sistema) */
+  --dialog-bg: #10251b;
+  --dialog-ink: #eef2ef;
+  --good: #5fd08a;
 
   /* veličine se prilagođavaju i širini i visini prozora */
   --card-w: clamp(50px, min(10.5vw, 13vh), 100px);
   --trick-w: clamp(46px, min(9vw, 11.5vh), 92px);
   --back-w: clamp(26px, min(5vw, 6.5vh), 50px);
   --mini-w: clamp(26px, min(4.2vw, 7.2vh), 58px);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --dialog-bg: #1d2420;
-    --dialog-ink: #eef2ef;
-  }
 }
 
 * { box-sizing: border-box; }
@@ -197,30 +192,75 @@ dialog.menu-pop::backdrop { background: rgba(0,0,0,.3); }
   background: transparent; color: var(--dialog-ink); cursor: pointer; text-decoration: none; text-align: center;
 }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-dialog { border: 0; border-radius: 14px; padding: 20px; background: var(--dialog-bg); color: var(--dialog-ink); width: min(440px, calc(100vw - 32px)); }
-dialog::backdrop { background: rgba(0,0,0,.55); }
-dialog h2 { margin-top: 0; }
+dialog {
+  border: 1px solid var(--plate-edge); border-radius: 16px; padding: 22px; background: var(--dialog-bg); color: var(--dialog-ink);
+  width: min(440px, calc(100vw - 32px)); box-shadow: 0 24px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+}
+dialog[open] { animation: dlg-in .16s ease-out; }
+@keyframes dlg-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+dialog::backdrop { background: rgba(0,0,0,.6); backdrop-filter: blur(2px); }
+dialog h2 { margin-top: 0; font-size: 1.25rem; }
+dialog .btn { color: var(--ink); border-color: var(--plate-edge); background: rgba(255,255,255,.05); }
+dialog .btn:hover { border-color: rgba(255,255,255,.3); }
+dialog .btn.primary { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+dialog .btn.danger { background: #c0392b; color: #fff; border-color: transparent; }
 dialog label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
 dialog select { font: inherit; padding: 8px; border-radius: 8px; }
 .dialog-buttons { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 .result { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.result th, .result td { padding: 5px 7px; text-align: right; border-bottom: 1px solid rgba(127,127,127,.25); }
+.result th, .result td { padding: 6px 8px; text-align: right; border-bottom: 1px solid rgba(255,255,255,.1); }
+.result th { color: var(--muted); font-weight: 600; font-size: .85rem; }
 .result th:first-child, .result td:first-child { text-align: left; }
 .result tr.total td { font-weight: 700; }
 .result td.best { color: var(--good); font-weight: 700; }
-/* "Pogledaj karte" posle partije: svaka ruka u svom redu */
-.cards-dialog { width: min(640px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; }
-.reveal-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid rgba(127,127,127,.25); }
-.reveal-name { width: 96px; flex: none; display: flex; flex-direction: column; }
-.reveal-name span { font-size: .85rem; opacity: .75; }
-.reveal-cards { display: flex; min-width: 0; }
-.reveal-cards .card-img { width: clamp(38px, 8vw, 58px); flex: none; margin-left: calc(clamp(38px, 8vw, 58px) * -.35); }
-.reveal-cards .card-img:first-child { margin-left: 0; }
-@media (max-width: 480px) {
-  .reveal-row { flex-direction: column; align-items: flex-start; gap: 6px; }
-  .reveal-name { width: auto; flex-direction: row; gap: 8px; align-items: baseline; }
-  .reveal-cards .card-img { width: 11vw; margin-left: -3.5vw; }
+/* "Pogledaj karte" posle partije: podloga stola, svaka ruka na svojoj pločici */
+.cards-dialog {
+  width: min(820px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 0;
+  background: radial-gradient(ellipse at 50% 30%, var(--felt) 0%, var(--felt-dark) 80%);
+  border: clamp(6px, 1vw, 10px) solid var(--rail);
 }
+.cards-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 16px 18px 6px; }
+.cards-head h2 { margin: 0; color: var(--accent); text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.cards-head span { color: var(--muted); font-size: .9rem; }
+#cardsBody { display: flex; flex-direction: column; gap: 8px; padding: 8px 14px; }
+.reveal-row { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; background: var(--plate); border: 1px solid var(--plate-edge); }
+.reveal-name { width: 150px; flex: none; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.reveal-name .avatar { width: 32px; height: 32px; font-size: 1rem; }
+.reveal-name b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pts { margin-left: auto; font-size: .78rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.1); color: var(--ink); }
+.pts.plus { background: rgba(226,93,93,.2); color: #ff9a9a; }
+.pts.minus { background: rgba(95,208,138,.18); color: #5fd08a; }
+.reveal-cards { display: flex; min-width: 0; padding: 2px 0; }
+.reveal-cards .card-img { width: clamp(40px, 6.2vw, 74px); flex: none; margin-left: calc(clamp(40px, 6.2vw, 74px) * -.3); box-shadow: -2px 2px 5px rgba(0,0,0,.35); }
+.reveal-cards .card-img:first-child { margin-left: 0; }
+.cards-dialog .dialog-buttons { padding: 6px 18px 18px; margin-top: 4px; }
+@media (max-width: 520px) {
+  .reveal-row { flex-direction: column; align-items: stretch; gap: 6px; }
+  .reveal-name { width: auto; }
+  .reveal-cards .card-img { width: 11.2vw; margin-left: -3vw; }
+  .reveal-cards .card-img:first-child { margin-left: 0; }
+}
+/* potvrda */
+.ask-dialog { width: min(400px, calc(100vw - 32px)); text-align: center; }
+.ask-icon { width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 50%; display: grid; place-items: center; background: rgba(242,193,78,.15); color: var(--accent); }
+.ask-icon.danger { background: rgba(226,93,93,.15); color: #ff8a80; }
+.ask-icon svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ask-text { color: var(--muted); margin: 0 0 4px; line-height: 1.45; }
+.ask-dialog .dialog-buttons { justify-content: center; }
+.ask-dialog .dialog-buttons .btn { min-width: 120px; }
+.ask-dialog input { width: 100%; font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--plate-edge); background: rgba(255,255,255,.06); color: var(--ink); margin-top: 10px; }
+
+/* obaveštenja: trake pri vrhu, same nestaju */
+.notices { position: fixed; top: 62px; left: 50%; transform: translateX(-50%); z-index: 40; display: flex; flex-direction: column; gap: 8px; width: min(440px, calc(100vw - 24px)); pointer-events: none; }
+.notice {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px;
+  background: rgba(9, 22, 16, .95); border: 1px solid var(--plate-edge); border-left: 4px solid var(--accent);
+  box-shadow: 0 10px 28px rgba(0,0,0,.5); font-size: .95rem; animation: notice-in .2s ease-out;
+}
+.notice svg { width: 20px; height: 20px; flex: none; fill: none; stroke: var(--accent); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.notice.out { opacity: 0; transform: translateY(-6px); transition: opacity .25s, transform .25s; }
+@keyframes notice-in { from { opacity: 0; transform: translateY(-8px); } }
+
 .sheet-dialog { width: min(560px, calc(100vw - 32px)); }
 .sheet-scroll { max-height: 62vh; overflow: auto; }
 .sheet h3 { margin: 14px 0 4px; font-size: .95rem; }
