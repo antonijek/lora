@@ -23,7 +23,7 @@ test('novi rekordi: samo strogo bolje, ne u prvom meču, jedna stavka po igri', 
   const prev = computeStats([rec('2026-09-01', [20, 30, 40, 50], [deal('MAX', [-2, -2, -2, -2])])]);
   const r = newRecords(prev, rec('2026-09-02', [12, 30, 40, 50], [deal('MAX', [-4, -2, -1, -1]), deal('MAX', [-6, -1, -1, 0])]));
   assert.equal(r.length, 2);
-  assert.match(r[0], /Najbolji meč: \+12 poena \(ranije \+20\)/);
+  assert.match(r[0], /Najbolji meč: 12 poena \(ranije 20\)/);
   assert.match(r[1], /Maksimum — najbolje −6 \(ranije −2\)/);
   assert.deepEqual(newRecords(prev, rec('2026-09-02', [20, 30, 40, 50], [deal('MAX', [-2, 0, 0, 0])])), [], 'izjednačenje nije rekord');
   assert.deepEqual(newRecords(computeStats([]), rec('2026-09-02', [5, 30, 40, 50], [])), [], 'prvi meč bez rekorda');

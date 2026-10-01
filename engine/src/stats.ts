@@ -59,7 +59,8 @@ export function newRecords(prev: PlayerStats, rec: MatchRecord): string[] {
   const out: string[] = [];
   const mine = rec.scores[rec.seat];
   if (prev.bestMatch && mine < prev.bestMatch.points) {
-    out.push(`Najbolji meč: ${signed(mine)} poena (ranije ${signed(prev.bestMatch.points)})`);
+    // ukupni poeni se svuda pišu bez plusa (kao u tabeli), samo minus ako ga ima
+    out.push(`Najbolji meč: ${mine} poena (ranije ${prev.bestMatch.points})`);
   }
   const seen = new Set<ContractId>();
   for (const d of rec.history) {
