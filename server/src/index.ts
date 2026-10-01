@@ -3,7 +3,8 @@ import http from 'node:http';
 import path from 'node:path';
 import express from 'express';
 import { Server as SocketIOServer } from 'socket.io';
-import { initDb, flushPersist, topPlayers, matchesForUser, recordVisit } from './db.js';
+import { initDb, flushPersist, topPlayers, matchesForUser, recordVisit, userMatchRecords, userDays, getRating } from './db.js';
+import { computeStats, streak } from '../../engine/dist/stats.js';
 import { adminRouter } from './admin.js';
 import { authRouter, verifyToken } from './auth.js';
 import { registerSocketHandlers } from './socket/index.js';
@@ -44,6 +45,27 @@ async function main(): Promise<void> {
     res.status(204).end();
   });
   app.get('/api/leaderboard', (_req, res) => res.json({ players: topPlayers(20) }));
+  // Moja statistika (online): mečevi, pobede, rekordi, niz dana, najviši rejting
+  app.get('/api/stats', (req, res) => {
+    let userId: number;
+    try {
+      ({ userId } = verifyToken(String(req.headers.authorization ?? '').replace(/^Bearer /, '')));
+    } catch {
+      return void res.status(401).json({ error: 'Niste prijavljeni.' });
+    }
+    const records = userMatchRecords(userId);
+    const rating = getRating(userId);
+    let r = 1000;
+    let bestRating = rating;
+    for (const m of records) if (m.rated) { r += m.delta; bestRating = Math.max(bestRating, r); }
+    res.json({
+      stats: computeStats(records),
+      streak: streak(userDays(userId), new Date().toISOString().slice(0, 10)),
+      rating,
+      bestRating,
+      ratedMatches: records.filter(m => m.rated).length,
+    });
+  });
   app.get('/api/matches', (req, res) => {
     try {
       const { userId } = verifyToken(String(req.headers.authorization ?? '').replace(/^Bearer /, ''));

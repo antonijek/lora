@@ -150,7 +150,7 @@ export function initOnline(hooks) {
 
     // ko sam (za lobi)
     fetch(`${BASE}api/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => { me = d.user; document.body.classList.toggle('is-admin', !!me?.is_admin); renderMe(); }).catch(() => {});
+      .then(r => r.json()).then(d => { me = d.user; document.body.classList.toggle('is-admin', !!me?.is_admin); renderMe(); loadStreak(); }).catch(() => {});
   }
 
   const emit = (ev, payload) => new Promise(resolve => {
@@ -168,10 +168,17 @@ export function initOnline(hooks) {
   // ---------------------------------------------------------------- lobi
 
   let myRating = null;
+  let myStreak = 0;
   function renderMe() {
     $('lobbyMe').innerHTML = me
-      ? `<span class="who"><span class="me-av">${esc(String(me.name)[0] ?? '?')}</span><b>${esc(me.name)}</b>${myRating ? ` <span class="muted small">${myRating}</span>` : ''}</span>`
+      ? `<span class="who"><span class="me-av">${esc(String(me.name)[0] ?? '?')}</span><b>${esc(me.name)}</b>${myRating ? ` <span class="muted small">${myRating}</span>` : ''}` +
+        `${myStreak >= 2 ? ` <span class="streak" title="${myStreak} dana zaredom">🔥 ${myStreak}</span>` : ''}</span>`
       : '';
+  }
+  // niz dana zaredom pored imena u lobiju (podsticaj da se igra svaki dan)
+  function loadStreak() {
+    fetch(`${BASE}api/stats`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => { myStreak = d.streak?.current ?? 0; renderMe(); }).catch(() => {});
   }
 
   function showLobby() {

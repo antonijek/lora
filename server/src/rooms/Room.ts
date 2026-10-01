@@ -36,6 +36,8 @@ export interface RatingResult {
   scores: number[];
   deltas: number[];
   newRatings: number[];
+  /** Novi lični rekordi po mestu (tekst za prikaz na kraju meča). */
+  records?: string[][];
 }
 
 export interface Room {

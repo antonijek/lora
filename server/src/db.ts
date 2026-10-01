@@ -5,6 +5,8 @@
 import fs from 'node:fs';
 import initSqlJs from 'sql.js';
 import type { Database } from 'sql.js';
+import type { MatchRecord } from '../../engine/dist/stats.js';
+import type { Position } from '../../engine/dist/types.js';
 
 const DB_PATH = process.env.DB_PATH || './lora.db';
 
@@ -201,4 +203,33 @@ export function recomputeRatings(deltasFor: (scores: number[], ratings: number[]
     run('UPDATE lora_players SET rating = ?, games_played = ? WHERE user_id = ?', [r, games.get(uid) ?? 0, uid]);
   }
   return { matches: rows.length, players: ratings.size };
+}
+
+// ---------- lična statistika ----------
+
+/** Svi mečevi igrača (i oni koje je napustio — AI je igrao za njega) iz njegovog ugla, najstariji prvi. */
+export function userMatchRecords(userId: number): (MatchRecord & { rated: boolean; delta: number })[] {
+  const rows = all<{ ended_at: string; rated: number; seats_json: string; scores_json: string; rating_deltas_json: string; history_json: string }>(
+    `SELECT ended_at, rated, seats_json, scores_json, rating_deltas_json, history_json
+     FROM match_log WHERE seats_json LIKE ? ORDER BY id`,
+    [`%"userId":${userId},%`],
+  );
+  const out: (MatchRecord & { rated: boolean; delta: number })[] = [];
+  for (const r of rows) {
+    const seat = (JSON.parse(r.seats_json) as { userId: number | null }[]).findIndex(s => s.userId === userId);
+    if (seat < 0) continue;
+    out.push({
+      date: r.ended_at,
+      scores: JSON.parse(r.scores_json),
+      seat: seat as Position,
+      history: JSON.parse(r.history_json),
+      rated: !!r.rated,
+      delta: (JSON.parse(r.rating_deltas_json) as number[])[seat] ?? 0,
+    });
+  }
+  return out;
+}
+
+export function userDays(userId: number): string[] {
+  return all<{ day: string }>('SELECT day FROM player_days WHERE user_id = ? ORDER BY day', [userId]).map(r => r.day);
 }

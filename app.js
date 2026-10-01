@@ -5,6 +5,7 @@
 
 import {
   LoraGame, LoraError, chooseAction, CONTRACT_NAMES, CONTRACT_GOALS, DEFAULT_CONTRACTS, SUITS, nextNeeded,
+  computeStats, newRecords, streak,
 } from './engine/dist/index.js';
 import { initOnline } from './online.js';
 
@@ -53,9 +54,12 @@ function ctx() {
 
 // ---------- lokalno čuvanje ----------
 
+// id meča protiv računara — da se u statistiku upiše tačno jednom (i posle osvežavanja)
+let localMatchId = null;
+
 function save() {
   if (mode !== 'local' || !game) return;
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ state: game.getState() })); } catch {}
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ state: game.getState(), id: localMatchId })); } catch {}
 }
 
 function loadLocal() {
@@ -64,6 +68,7 @@ function loadLocal() {
     if (!raw) return false;
     const data = JSON.parse(raw);
     game = LoraGame.fromState(data.state);
+    localMatchId = data.id ?? Date.now().toString(36);
     return true;
   } catch {
     return false;
@@ -76,6 +81,7 @@ function newLocalGame() {
   pickerOpen = false;
   dealEndShown = null;
   game = new LoraGame();
+  localMatchId = Date.now().toString(36);
   lastView = null;
   save();
   render();
@@ -105,10 +111,16 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 // ---------- render ----------
 
+// "Poslednji štih" na telefonu: dodir prikaže prethodni štih na stolu na par sekundi
+let peekTrick = null;
+let peekTimer = null;
+
 function render(showTrick = null) {
   const c = ctx();
   const { v, names } = c;
   if (!v) return;
+  renderLastTrick(c);
+  showTrick ??= peekTrick;
   const rel = p => (p - c.me + 4) % 4;
 
   $('contractName').textContent = v.contract ? CONTRACT_NAMES[v.contract] : 'Bira se igra';
@@ -187,6 +199,33 @@ function picker(v) {
   }
   return wrap;
 }
+
+function renderLastTrick(c) {
+  const { v, names } = c;
+  const lt = v.phase === 'TRICKS' && v.lastTrick ? v.lastTrick : null;
+  $('lastTrickBox').hidden = !lt;
+  $('lastTrickBtn').hidden = !lt;
+  if (!lt) {
+    peekTrick = null;
+    return;
+  }
+  $('lastTrickBtn').classList.toggle('on', !!peekTrick);
+  $('lastTrickBox').innerHTML =
+    `<div class="lt-head">Poslednji štih <span>odneo: <b>${esc(names[lt.winner])}</b></span></div>` +
+    '<div class="lt-cards">' + lt.cards.map(pc =>
+      `<div class="lt-card${pc.player === lt.winner ? ' win' : ''}" title="${esc(names[pc.player])}">` +
+      `<img class="card-img" src="./icons/cards/${pc.card.id}.svg" alt="${pc.card.rank}${pc.card.suit}" draggable="false">` +
+      `<span class="lt-who" style="background:${COLORS[pc.player]}">${esc(String(names[pc.player])[0] ?? '?')}</span></div>`).join('') +
+    '</div>';
+}
+
+$('lastTrickBtn').addEventListener('click', () => {
+  clearTimeout(peekTimer);
+  const v = ctx().v;
+  peekTrick = peekTrick || !v?.lastTrick ? null : v.lastTrick;
+  if (peekTrick) peekTimer = setTimeout(() => { peekTrick = null; render(); }, 3000);
+  render();
+});
 
 function renderCenter(c, rel, showTrick) {
   const { v, names } = c;
@@ -400,6 +439,13 @@ function showDealEnd() {
   revealedSnap = v.revealed ? { title: CONTRACT_NAMES[last.contract], chooser: names[last.chooser], names: [...names], hands: v.revealed, points: [...last.points] } : null;
   $('viewCardsBtn').hidden = !revealedSnap;
 
+  // novi lični rekordi na kraju meča (online: računa server; protiv računara: ovde)
+  const recs = !finished ? [] : mode === 'online' ? rating?.records?.[c.me] ?? [] : recordLocalMatch(v);
+  $('dealRecords').hidden = !recs.length;
+  $('dealRecords').innerHTML = recs.length
+    ? `<b>🏆 Novi lični rekord!</b><ul>${recs.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : '';
+  if (mode === 'local' && !finished) markLocalDay();
+
   const btn = $('nextDealBtn');
   btn.disabled = false;
   if (finished) btn.textContent = mode === 'online' ? 'Nazad u lobi' : 'Nova igra';
@@ -409,6 +455,95 @@ function showDealEnd() {
 }
 
 const fmt = n => (n > 0 ? `+${n}` : String(n));
+
+// ---------- moja statistika ----------
+
+const STATS_KEY = 'lora.stats.v1';
+const localDay = () => new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD po lokalnom vremenu
+
+function loadLocalStats() {
+  try { return JSON.parse(localStorage.getItem(STATS_KEY)) ?? { matches: [], days: [], last: null }; }
+  catch { return { matches: [], days: [], last: null }; }
+}
+function saveLocalStats(st) {
+  st.matches = st.matches.slice(-300);
+  st.days = [...new Set(st.days)].sort().slice(-400);
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(st)); } catch {}
+}
+function markLocalDay() {
+  const st = loadLocalStats();
+  if (!st.days.includes(localDay())) { st.days.push(localDay()); saveLocalStats(st); }
+}
+/** Upiši završen meč protiv računara (tačno jednom) i vrati nove rekorde. */
+function recordLocalMatch(v) {
+  const st = loadLocalStats();
+  if (st.last?.id === localMatchId) return st.last.records;
+  const rec = { date: localDay(), scores: [...v.scores], seat: 0, history: v.history };
+  const records = newRecords(computeStats(st.matches), rec);
+  st.matches.push(rec);
+  st.days.push(localDay());
+  st.last = { id: localMatchId, records };
+  saveLocalStats(st);
+  return records;
+}
+
+const storedToken = () => { try { return localStorage.getItem('lora_token'); } catch { return null; } };
+
+let statsTab = 'local';
+function openStats(tab) {
+  statsTab = tab ?? (storedToken() && (mode === 'online' || lastMode() === 'online') ? 'online' : 'local');
+  if (!$('statsDlg').open) $('statsDlg').showModal();
+  renderStats();
+}
+async function renderStats() {
+  for (const b of $('statsTabs').children) b.classList.toggle('on', b.dataset.t === statsTab);
+  const body = $('statsBody');
+  if (statsTab === 'local') {
+    const st = loadLocalStats();
+    body.innerHTML = statsHtml(computeStats(st.matches), streak(st.days, localDay()), null);
+    return;
+  }
+  const token = storedToken();
+  if (!token) { body.innerHTML = '<p class="stats-empty">Prijavite se za online statistiku (Igraj online).</p>'; return; }
+  body.innerHTML = '<p class="stats-empty">Učitavam…</p>';
+  try {
+    const r = await fetch('api/stats', { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    if (statsTab === 'online') body.innerHTML = statsHtml(d.stats, d.streak, d);
+  } catch {
+    body.innerHTML = '<p class="stats-empty">Statistika trenutno nije dostupna.</p>';
+  }
+}
+function statsHtml(s, str, online) {
+  if (!s.matches) return '<p class="stats-empty">Još nema završenih mečeva. Odigraj prvi i ovde će se pojaviti tvoji rekordi.</p>';
+  const tile = (num, lbl, cls = '') => `<div class="stat-tile ${cls}"><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
+  const dt = d => (d ? new Date(d.slice(0, 10) + 'T12:00:00').toLocaleDateString('sr-RS', { day: 'numeric', month: 'numeric', year: '2-digit' }) : '');
+  const tiles = [
+    tile(s.matches, 'odigranih mečeva'),
+    tile(`${s.wins} <small class="pct">${Math.round((s.wins / s.matches) * 100)}%</small>`, 'pobeda'),
+    tile(s.bestMatch.points, 'najbolji meč (poena)'),
+    tile(s.avgScore, 'prosečno poena'),
+    online ? tile(online.rating, `rejting · najviši ${online.bestRating}`) : '',
+    tile(`🔥 ${str.current}`, `dana zaredom · najduže ${str.best}`, 'fire'),
+  ].join('');
+  const rows = DEFAULT_CONTRACTS.filter(k => s.bestDeal[k]).map(k =>
+    `<tr><td>${CONTRACT_NAMES[k]}</td><td>${fmt(s.bestDeal[k].points)}</td><td>${dt(s.bestDeal[k].date)}</td></tr>`).join('');
+  return `<div class="stat-tiles">${tiles}</div>
+    <h3 class="stats-sub">Najbolja partija po igri</h3>
+    <table class="result"><thead><tr><th>Igra</th><th>Poena</th><th>Kad</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+$('statsTabs').addEventListener('click', e => {
+  const t = e.target.closest('button[data-t]')?.dataset.t;
+  if (!t) return;
+  statsTab = t;
+  renderStats();
+});
+$('closeStatsBtn').addEventListener('click', () => $('statsDlg').close());
+$('statsMenuBtn').addEventListener('click', () => { $('menu').close(); openStats(); });
+$('startStatsBtn').addEventListener('click', () => openStats());
+$('lobbyStatsBtn').addEventListener('click', () => openStats('online'));
 
 let revealedSnap = null;
 function showRevealed() {
@@ -533,6 +668,7 @@ function goHome() {
 function startLocal() {
   mode = 'local';
   rememberMode('local');
+  markLocalDay();
   onlineState = null;
   lastView = null;
   $('chatBtn').hidden = true;

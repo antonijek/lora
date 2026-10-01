@@ -202,6 +202,11 @@ try {
   check(lb.data.players.length === 2, 'rang lista ima 2 čoveka');
   const hist = await api('/api/matches', null, ra.data.token);
   check(hist.data.matches.length === 1, 'istorija meča za igrača');
+  const st = await api('/api/stats', null, ra.data.token);
+  check(st.status === 200 && st.data.stats.matches === 1 && st.data.streak.current === 1, `moja statistika posle meča (${st.status}, ${st.data.stats?.matches}, niz ${st.data.streak?.current})`);
+  check(st.data.stats.bestMatch?.points === r.scores[players[0].last.mySeat] && Object.keys(st.data.stats.bestDeal).length === 7, 'najbolji meč i najbolja partija za svih 7 igara');
+  check(Array.isArray(r.records) && r.records.every(x => x.length === 0), 'prvi meč nema "novi rekord"');
+  check((await api('/api/stats')).status === 401, 'statistika bez prijave → 401');
 
   // --- napuštanje: novi meč, Boris napusti → AI preuzima, pa se vrati
   await emit(players[0], 'room:leaveFinished');

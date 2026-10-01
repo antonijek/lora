@@ -5,7 +5,8 @@
 import type { Server } from 'socket.io';
 import { chooseAction } from '../../../engine/dist/ai.js';
 import type { Position } from '../../../engine/dist/types.js';
-import { getRating, updateRating, saveMatchLog } from '../db.js';
+import { getRating, updateRating, saveMatchLog, userMatchRecords } from '../db.js';
+import { computeStats, newRecords } from '../../../engine/dist/stats.js';
 import type { Room, RatingResult } from './Room.js';
 import { SEATS, status, persistRoom, humanSeats } from './Room.js';
 
@@ -198,7 +199,15 @@ function resolveRating(room: Room): void {
     }
   });
 
-  const result: RatingResult = { rated: room.rated, scores, deltas, newRatings };
+  // lični rekordi — poređenje sa mečevima PRE ovog (zato pre saveMatchLog)
+  const today = new Date().toISOString().slice(0, 10);
+  const records = SEATS.map(s => {
+    const uid = room.seats[s].userId; // samo ko je za stolom do kraja, ne ko je napustio
+    if (room.seats[s].kind !== 'human' || uid === null) return [];
+    return newRecords(computeStats(userMatchRecords(uid)), { date: today, scores, seat: s, history: st.history });
+  });
+
+  const result: RatingResult = { rated: room.rated, scores, deltas, newRatings, records };
   room.ratingResult = result;
   saveMatchLog({
     roomCode: room.code,
