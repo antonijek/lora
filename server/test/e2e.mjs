@@ -76,7 +76,7 @@ try {
   check(me.data.user?.name === 'Ana', '/api/me preko proxy-ja');
 
   // --- statika: samo dozvoljeni fajlovi
-  for (const [p, want] of [['/', 200], ['/app.js', 200], ['/engine/dist/game.js', 200], ['/server/lora.db', 404], ['/server/.env', 404], ['/docs/BACKEND.md', 404], ['/engine/src/game.ts', 404]]) {
+  for (const [p, want] of [['/', 200], ['/app.js', 200], ['/engine/dist/game.js', 200], ['/icon.svg', 200], ['/favicon.ico', 200], ['/icons/apple-touch-icon.png', 200], ['/manifest.json', 200], ['/server/lora.db', 404], ['/server/.env', 404], ['/docs/BACKEND.md', 404], ['/engine/src/game.ts', 404]]) {
     const r = await fetch(`http://127.0.0.1:${LORA_PORT}${p}`);
     check(r.status === want, `statika ${p} → ${r.status} (očekivano ${want})`);
   }

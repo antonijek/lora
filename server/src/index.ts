@@ -22,7 +22,9 @@ async function main(): Promise<void> {
   app.set('trust proxy', 1); // nginx → prava IP adresa za rate limit
   app.use(express.json());
   // Javno je SAMO ono što treba browseru — nikad server/ (baza, .env), docs/, node_modules/.
-  const PUBLIC = /^\/(lora\.html|pravila\.html|admin\.html|app\.js|online\.js|lora\.css|engine\/dist\/[\w.-]+\.js|icons\/cards\/[\w.-]+\.svg)?$/;
+  const PUBLIC = /^\/(lora\.html|pravila\.html|admin\.html|app\.js|online\.js|lora\.css|engine\/dist\/[\w.-]+\.js|icons\/cards\/[\w.-]+\.svg|icon\.svg|manifest\.json|icons\/[\w.-]+\.png)?$/;
+  // pregledači same traže /favicon.ico — dobijaju PNG ikonicu
+  app.get('/favicon.ico', (_req, res) => res.type('png').sendFile(path.join(PROJECT_ROOT, 'icons/favicon-32.png')));
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io/') || PUBLIC.test(req.path)) return next();
     res.status(404).end();
