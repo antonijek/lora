@@ -3,8 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Lora online — kartaška igra</title>
-  <meta name="description" content="Lora (lore, lorum) online protiv računara — besplatno, bez registracije. Svih 7 igara: maksimum, minimum, herc, dame, žandar, kralj herc i lora.">
+  <title>Lora online — besplatna kartaška igra (lore, lorum)</title>
+  <meta name="description" content="Igraj Loru (lore, lorum) online besplatno: sa prijateljima u sobi ili protiv računara. Svih 7 igara, rejting i chat — bez instaliranja.">
+  <link rel="canonical" href="https://lora.igrajmo.online/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Lora online">
+  <meta property="og:locale" content="sr_RS">
+  <meta property="og:title" content="Lora online — igraj sa prijateljima ili protiv računara">
+  <meta property="og:description" content="Igraj Loru (lore, lorum) online besplatno: sa prijateljima u sobi ili protiv računara. Svih 7 igara, rejting i chat — bez instaliranja.">
+  <meta property="og:url" content="https://lora.igrajmo.online/">
+  <meta property="og:image" content="https://lora.igrajmo.online/icons/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Lora online — karte na zelenom stolu">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Lora online — igraj sa prijateljima ili protiv računara">
+  <meta name="twitter:description" content="Igraj Loru (lore, lorum) online besplatno: sa prijateljima u sobi ili protiv računara. Svih 7 igara, rejting i chat — bez instaliranja.">
+  <meta name="twitter:image" content="https://lora.igrajmo.online/icons/og-image.jpg">
+  <meta name="apple-mobile-web-app-title" content="Lora">
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "@id": "https://lora.igrajmo.online/#site", "url": "https://lora.igrajmo.online/", "name": "Lora online", "inLanguage": "sr"}, {"@type": "WebApplication", "@id": "https://lora.igrajmo.online/#app", "name": "Lora online", "alternateName": ["Lora", "Lore", "Lorum"], "url": "https://lora.igrajmo.online/", "description": "Igraj Loru (lore, lorum) online besplatno: sa prijateljima u sobi ili protiv računara. Svih 7 igara, rejting i chat — bez instaliranja.", "image": "https://lora.igrajmo.online/icons/og-image.jpg", "applicationCategory": "GameApplication", "genre": "Kartaška igra", "operatingSystem": "Web (Android, iOS, Windows, macOS)", "browserRequirements": "Potreban je JavaScript", "inLanguage": "sr", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "isPartOf": {"@id": "https://lora.igrajmo.online/#site"}}]}</script>
   <meta name="theme-color" content="#0d1f17">
   <link rel="stylesheet" href="./lora.css">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
@@ -13,9 +30,10 @@
   <link rel="manifest" href="./manifest.json">
 </head>
 <body>
+  <noscript><p style="padding:16px">Lora online je besplatna kartaška igra (lore, lorum) za igru sa prijateljima ili protiv računara. Za igru je potreban JavaScript. <a href="./pravila.html">Pravila Lore</a></p></noscript>
   <header class="topbar">
     <div class="brand">
-      <h1>Lora</h1>
+      <div class="logo">Lora</div>
       <div class="progress" title="Odigrane partije"><span id="dealNo"></span><i><b id="dealBar"></b></i></div>
     </div>
     <div class="contract"><b id="contractName"></b></div>
@@ -112,11 +130,16 @@
   <!-- ===================== ekrani van stola ===================== -->
   <section id="startScreen" class="screen" hidden>
     <div class="panel hero">
-      <h2>Lora</h2>
-      <p class="muted">Kartaška igra za četvoro — sedam igara, 28 partija.</p>
+      <h1>Lora <span>online</span></h1>
+      <p class="muted">Besplatna kartaška igra za četvoro — sedam igara, 28 partija.</p>
       <button id="goOnlineBtn" class="btn primary big">Igraj online</button>
       <button id="goLocalBtn" class="btn big">Igraj protiv računara</button>
       <div class="hero-links"><button id="startStatsBtn" class="link" type="button">Moja statistika</button><a class="link" href="./pravila.html">Pravila igre</a></div>
+      <ul class="hero-feats">
+        <li><b>Online sa prijateljima</b> — napravi sobu, pošalji link i igrajte uživo, uz chat i rejting.</li>
+        <li><b>Protiv računara</b> — jak protivnik, bez registracije i bez instaliranja.</li>
+        <li><b>Svih 7 igara</b> — maksimum, minimum, herc, dame, žandar tref, kralj herc i poslednji, lora.</li>
+      </ul>
       <a class="admin-link admin-only" href="./admin.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v6c0 4.2-2.9 7.7-7 9-4.1-1.3-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>Admin panel</a>
     </div>
   </section>

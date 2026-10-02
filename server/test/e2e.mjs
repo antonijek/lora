@@ -76,10 +76,22 @@ try {
   check(me.data.user?.name === 'Ana', '/api/me preko proxy-ja');
 
   // --- statika: samo dozvoljeni fajlovi
-  for (const [p, want] of [['/', 200], ['/app.js', 200], ['/engine/dist/game.js', 200], ['/icon.svg', 200], ['/favicon.ico', 200], ['/icons/apple-touch-icon.png', 200], ['/manifest.json', 200], ['/server/lora.db', 404], ['/server/.env', 404], ['/docs/BACKEND.md', 404], ['/engine/src/game.ts', 404]]) {
+  for (const [p, want] of [['/', 200], ['/app.js', 200], ['/engine/dist/game.js', 200], ['/icon.svg', 200], ['/favicon.ico', 200], ['/icons/apple-touch-icon.png', 200], ['/manifest.json', 200], ['/robots.txt', 200], ['/sitemap.xml', 200], ['/79033a1f38f6216677370c7b7e06b7db.txt', 200], ['/icons/cards/QH.webp', 200], ['/icons/og-image.jpg', 200], ['/server/lora.db', 404], ['/server/.env', 404], ['/docs/BACKEND.md', 404], ['/engine/src/game.ts', 404]]) {
     const r = await fetch(`http://127.0.0.1:${LORA_PORT}${p}`);
     check(r.status === want, `statika ${p} → ${r.status} (očekivano ${want})`);
   }
+
+  // --- pretraživači i pregled linka
+  const home = await (await fetch(`http://127.0.0.1:${LORA_PORT}/`)).text();
+  check(/og:image/.test(home) && /application\/ld\+json/.test(home) && /rel="canonical"/.test(home), 'početna ima Open Graph, JSON-LD i canonical');
+  const roomPage = await (await fetch(`http://127.0.0.1:${LORA_PORT}/?room=ab12c`)).text();
+  check(roomPage.includes('Poziv na Loru — soba AB12C') && roomPage.includes('noindex'), 'link sobe ima svoj pregled (i nije za pretragu)');
+  const sm = await (await fetch(`http://127.0.0.1:${LORA_PORT}/sitemap.xml`)).text();
+  check(/<loc>https:\/\/lora\.igrajmo\.online\/pravila\.html<\/loc>/.test(sm) && /<lastmod>/.test(sm), 'sitemap sa obe stranice');
+  const js = await fetch(`http://127.0.0.1:${LORA_PORT}/app.js`, { headers: { 'Accept-Encoding': 'gzip' } });
+  check(js.headers.get('content-encoding') === 'gzip', 'JS se šalje sažet (gzip)');
+  const img = await fetch(`http://127.0.0.1:${LORA_PORT}/icons/cards/QH.webp`);
+  check(/max-age=604800/.test(img.headers.get('cache-control') ?? ''), 'karte se pamte u pregledaču');
 
   // --- loš token odbijen
   const bogus = io(`http://127.0.0.1:${LORA_PORT}`, { auth: { token: 'xyz' }, transports: ['websocket'], reconnection: false });

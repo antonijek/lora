@@ -4,7 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pravila Lore — kako se igra lora (lore, lorum)</title>
-  <meta name="description" content="Pravila kartaške igre Lora: 7 igara (maksimum, minimum, herc, dame, žandar tref, kralj herc i poslednji, lora), bodovanje i slaganje.">
+  <meta name="description" content="Pravila kartaške igre Lora (lore, lorum): 7 igara — maksimum, minimum, herc, dame, žandar tref, kralj herc i poslednji, lora — bodovanje, slaganje i česta pitanja.">
+  <link rel="canonical" href="https://lora.igrajmo.online/pravila.html">
+  <meta name="theme-color" content="#0d1f17">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Lora online">
+  <meta property="og:locale" content="sr_RS">
+  <meta property="og:title" content="Pravila Lore — kako se igra lora (lore, lorum)">
+  <meta property="og:description" content="Pravila kartaške igre Lora (lore, lorum): 7 igara — maksimum, minimum, herc, dame, žandar tref, kralj herc i poslednji, lora — bodovanje, slaganje i česta pitanja.">
+  <meta property="og:url" content="https://lora.igrajmo.online/pravila.html">
+  <meta property="og:image" content="https://lora.igrajmo.online/icons/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://lora.igrajmo.online/icons/og-image.jpg">
+  <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Article", "@id": "https://lora.igrajmo.online/pravila.html#article", "headline": "Pravila Lore — kako se igra lora", "description": "Pravila kartaške igre Lora (lore, lorum): 7 igara — maksimum, minimum, herc, dame, žandar tref, kralj herc i poslednji, lora — bodovanje, slaganje i česta pitanja.", "inLanguage": "sr", "url": "https://lora.igrajmo.online/pravila.html", "image": "https://lora.igrajmo.online/icons/og-image.jpg", "about": {"@type": "Game", "name": "Lora", "alternateName": ["Lore", "Lorum"], "numberOfPlayers": {"@type": "QuantitativeValue", "value": 4}}, "isPartOf": {"@id": "https://lora.igrajmo.online/#site"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Lora online", "item": "https://lora.igrajmo.online/"}, {"@type": "ListItem", "position": 2, "name": "Pravila", "item": "https://lora.igrajmo.online/pravila.html"}]}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Koliko igrača igra Loru?", "acceptedAnswer": {"@type": "Answer", "text": "Loru igraju četiri igrača i svako igra za sebe. Nema parova ni timova."}}, {"@type": "Question", "name": "Koliko karata se koristi u Lori?", "acceptedAnswer": {"@type": "Answer", "text": "Igra se špilom od 32 karte, od sedmice do keca u sve četiri boje. Svaki igrač dobija po 8 karata."}}, {"@type": "Question", "name": "Ko pobeđuje u Lori?", "acceptedAnswer": {"@type": "Answer", "text": "Posle svih 28 partija pobeđuje igrač sa najmanje poena. Poeni se skupljaju kroz ceo meč, a u maksimumu i u lori mogu biti i negativni."}}, {"@type": "Question", "name": "Da li su lora, lore i lorum ista igra?", "acceptedAnswer": {"@type": "Answer", "text": "Da, to su različiti nazivi iste igre. Lórum je mađarski naziv, a na Balkanu se najčešće kaže lora ili lore. Pravila se razlikuju od kraja do kraja."}}, {"@type": "Question", "name": "Šta znači „dalje“ u Lori?", "acceptedAnswer": {"@type": "Answer", "text": "U igri Lora (slaganje) igrač koji nema kartu koja može na sto kaže „dalje“ i dobija +1 poen. Ko je bar jednom rekao „dalje“, ne dobija −8 ni kada se prvi oslobodi karata."}}, {"@type": "Question", "name": "Koliko traje jedan meč Lore?", "acceptedAnswer": {"@type": "Answer", "text": "Meč ima 28 partija: svaki od četiri igrača odigra svih sedam igara. Za stolom sa ljudima to obično traje oko pola sata do sat vremena."}}, {"@type": "Question", "name": "Kako se igra Lora online?", "acceptedAnswer": {"@type": "Answer", "text": "Na ovoj stranici Lora se igra besplatno u pregledaču, bez instaliranja: online sa prijateljima u sobi sa kodom ili linkom, ili protiv računara. Prazna mesta u sobi popunjava računar."}}]}]}</script>
   <link rel="stylesheet" href="./lora.css">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="icon" href="./icons/favicon-32.png" sizes="32x32" type="image/png">
@@ -15,6 +29,9 @@
     .rules table { border-collapse: collapse; margin: 8px 0 16px; width: 100%; }
     .rules th, .rules td { border: 1px solid rgba(255,255,255,.25); padding: 6px 10px; text-align: left; vertical-align: top; }
     .rules a { color: var(--accent); }
+    .rules h3 { margin: 18px 0 4px; font-size: 1.02rem; }
+    .rules h3 + p { margin-top: 0; }
+    .play-cta { display: inline-block; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -22,6 +39,7 @@
     <p><a href="./">← Nazad na igru</a></p>
     <h1>Pravila Lore</h1>
     <p>Lora (lore, lorum) je kartaška igra za 4 igrača. Svako igra za sebe. Igra se špilom od 32 karte (od sedmice do keca), a svaki igrač dobija po 8 karata. Cilj je skupiti <b>što manje poena</b>.</p>
+    <p>Loru možete odmah da igrate <a href="./">online, besplatno</a> — sa prijateljima ili protiv računara, bez instaliranja.</p>
 
     <h2>Tok igre</h2>
     <p>Delilac se menja posle svake partije. Igrač do delioca pogleda svoje karte i bira jednu od svojih igara koje još nije odigrao. On zatim igra prvu kartu. Svaki igrač ima svoju tabelu sa svih 7 igara, pa se igra ukupno 28 partija. Igra se u smeru suprotnom od kazaljke na satu.</p>
@@ -46,8 +64,31 @@
     <p>Prvi igrač odigra bilo koju kartu i njen rang postaje početni za sve četiri boje. Posle toga igrači redom dodaju kartu: ili otvaraju novu boju početnim rangom, ili nastavljaju započetu boju sledećom kartom. Posle keca dolazi sedmica. Na primer, ako se počne devetkom, niz je 9, 10, J, Q, K, A, 7, 8.</p>
     <p>Ko nema kartu koja može, kaže „dalje“ i dobija +1 poen. Ko je bar jednom rekao „dalje“, ne dobija −8 ni ako se prvi oslobodi karata. Ko ima kartu koja može, mora da je odigra.</p>
 
-    <p class="note">Pravila Lore se razlikuju od kraja do kraja. Ovde je opisana najčešća varijanta.</p>
-    <p><a class="btn primary" href="./">Igraj Loru</a></p>
+    <h2>Varijante</h2>
+    <p>Pravila Lore se razlikuju od kraja do kraja. Ovde je opisana najčešća varijanta, a najčešće razlike su:</p>
+    <ul>
+      <li><b>Redosled igara:</b> negde se igre igraju stalnim redom, a negde (kao ovde) igrač bira koju će od svojih igara igrati.</li>
+      <li><b>Kralj herc:</b> umesto poslednjeg štiha negde se +4 dobija za šesti štih.</li>
+      <li><b>„Dalje“ u slaganju:</b> negde nema kazne, a negde (kao ovde) svako „dalje“ donosi +1.</li>
+      <li><b>Žandar tref:</b> negde +6 onome ko ga odnese i +2 igraču preko puta.</li>
+    </ul>
+
+    <h2>Česta pitanja</h2>
+    <h3>Koliko igrača igra Loru?</h3>
+    <p>Loru igraju četiri igrača i svako igra za sebe. Nema parova ni timova.</p>
+    <h3>Koliko karata se koristi u Lori?</h3>
+    <p>Igra se špilom od 32 karte, od sedmice do keca u sve četiri boje. Svaki igrač dobija po 8 karata.</p>
+    <h3>Ko pobeđuje u Lori?</h3>
+    <p>Posle svih 28 partija pobeđuje igrač sa najmanje poena. Poeni se skupljaju kroz ceo meč, a u maksimumu i u lori mogu biti i negativni.</p>
+    <h3>Da li su lora, lore i lorum ista igra?</h3>
+    <p>Da, to su različiti nazivi iste igre. Lórum je mađarski naziv, a na Balkanu se najčešće kaže lora ili lore. Pravila se razlikuju od kraja do kraja.</p>
+    <h3>Šta znači „dalje“ u Lori?</h3>
+    <p>U igri Lora (slaganje) igrač koji nema kartu koja može na sto kaže „dalje“ i dobija +1 poen. Ko je bar jednom rekao „dalje“, ne dobija −8 ni kada se prvi oslobodi karata.</p>
+    <h3>Koliko traje jedan meč Lore?</h3>
+    <p>Meč ima 28 partija: svaki od četiri igrača odigra svih sedam igara. Za stolom sa ljudima to obično traje oko pola sata do sat vremena.</p>
+    <h3>Kako se igra Lora online?</h3>
+    <p>Na ovoj stranici Lora se igra besplatno u pregledaču, bez instaliranja: online sa prijateljima u sobi sa kodom ili linkom, ili protiv računara. Prazna mesta u sobi popunjava računar.</p>
+    <p><a class="btn primary play-cta" href="./">Igraj Loru online</a></p>
   </main>
 </body>
 </html>

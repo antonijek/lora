@@ -93,7 +93,10 @@ function newLocalGame() {
 function cardImg(card) {
   const img = document.createElement('img');
   img.className = 'card-img';
-  img.src = `./icons/cards/${card.id}.svg`;
+  img.src = `./icons/cards/${card.id}.webp`;
+  // prave dimenzije slike (5:7) — prostor se rezerviše pre učitavanja, sto ne "skače"
+  img.width = 300;
+  img.height = 420;
   img.alt = `${card.rank}${card.suit}`;
   img.draggable = false;
   return img;
@@ -101,7 +104,9 @@ function cardImg(card) {
 
 function backImg() {
   const img = document.createElement('img');
-  img.src = './icons/cards/back-red.svg';
+  img.src = './icons/cards/back-red.webp';
+  img.width = 300;
+  img.height = 420;
   img.alt = '';
   return img;
 }
@@ -214,7 +219,7 @@ function renderLastTrick(c) {
     `<div class="lt-head">Poslednji štih <span>odneo: <b>${esc(names[lt.winner])}</b></span></div>` +
     '<div class="lt-cards">' + lt.cards.map(pc =>
       `<div class="lt-card${pc.player === lt.winner ? ' win' : ''}" title="${esc(names[pc.player])}">` +
-      `<img class="card-img" src="./icons/cards/${pc.card.id}.svg" alt="${pc.card.rank}${pc.card.suit}" draggable="false">` +
+      `<img class="card-img" src="./icons/cards/${pc.card.id}.webp" width="300" height="420" alt="${pc.card.rank}${pc.card.suit}" draggable="false">` +
       `<span class="lt-who" style="background:${COLORS[pc.player]}">${esc(String(names[pc.player])[0] ?? '?')}</span></div>`).join('') +
     '</div>';
 }

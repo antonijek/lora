@@ -2,10 +2,12 @@ import 'dotenv/config';
 import http from 'node:http';
 import path from 'node:path';
 import express from 'express';
+import compression from 'compression';
 import { Server as SocketIOServer } from 'socket.io';
 import { initDb, flushPersist, topPlayers, matchesForUser, recordVisit, userMatchRecords, userDays, getRating } from './db.js';
 import { computeStats, streak } from '../../engine/dist/stats.js';
 import { adminRouter } from './admin.js';
+import { seoRouter } from './seo.js';
 import { authRouter, verifyToken } from './auth.js';
 import { registerSocketHandlers } from './socket/index.js';
 import { loadPersistedRooms, removeAbandonedRooms, allRooms, status } from './rooms/Room.js';
@@ -22,8 +24,12 @@ async function main(): Promise<void> {
   const app = express();
   app.set('trust proxy', 1); // nginx → prava IP adresa za rate limit
   app.use(express.json());
+  // sažimanje (gzip) — JS, CSS, SVG i JSON su ranije išli nesažeti (nginx sažima samo HTML)
+  app.use(compression());
+  // robots.txt, sitemap.xml, IndexNow ključ, pregled linka sobe
+  app.use(seoRouter(PROJECT_ROOT));
   // Javno je SAMO ono što treba browseru — nikad server/ (baza, .env), docs/, node_modules/.
-  const PUBLIC = /^\/(lora\.html|pravila\.html|admin\.html|app\.js|online\.js|lora\.css|engine\/dist\/[\w.-]+\.js|icons\/cards\/[\w.-]+\.svg|icon\.svg|manifest\.json|icons\/[\w.-]+\.png)?$/;
+  const PUBLIC = /^\/(lora\.html|pravila\.html|admin\.html|app\.js|online\.js|lora\.css|engine\/dist\/[\w.-]+\.js|icons\/cards\/[\w.-]+\.(?:svg|webp)|icon\.svg|manifest\.json|icons\/[\w.-]+\.(?:png|jpg))?$/;
   // pregledači same traže /favicon.ico — dobijaju PNG ikonicu
   app.get('/favicon.ico', (_req, res) => res.type('png').sendFile(path.join(PROJECT_ROOT, 'icons/favicon-32.png')));
   app.use((req, res, next) => {
@@ -32,7 +38,9 @@ async function main(): Promise<void> {
   });
   app.use(express.static(PROJECT_ROOT, {
     index: 'lora.html',
-    setHeaders: res => res.setHeader('Cache-Control', 'no-cache'),
+    // slike (karte, ikonice) se ne menjaju — pregledač ih čuva nedelju dana; HTML/JS/CSS se uvek proveravaju
+    setHeaders: (res, filePath) => res.setHeader('Cache-Control',
+      /[\\/]icons[\\/]/.test(filePath) ? 'public, max-age=604800' : 'no-cache'),
   }));
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, rooms: allRooms().length }));

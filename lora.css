@@ -41,7 +41,7 @@ body {
 /* tri kolone: levo naziv + napredak, u sredini SAMO trenutna igra, desno dugmad */
 .topbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 6px 16px; background: var(--bar); height: 54px; }
 .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.topbar h1 { font-size: 1.2rem; margin: 0; letter-spacing: .03em; }
+.topbar .logo { font-size: 1.2rem; font-weight: 700; margin: 0; letter-spacing: .03em; }
 .progress { display: flex; flex-direction: column; gap: 3px; font-size: .75rem; color: var(--muted); min-width: 64px; }
 .progress i { display: block; height: 4px; border-radius: 2px; background: rgba(255,255,255,.12); overflow: hidden; }
 .progress b { display: block; height: 100%; background: var(--accent); }
@@ -105,7 +105,7 @@ dialog.menu-pop::backdrop { background: rgba(0,0,0,.3); }
 .chip.pass { background: #e25d5d; color: #fff; }
 
 .backs { display: flex; }
-.backs img { width: var(--back-w); margin-left: calc(var(--back-w) * -.7); border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.45); }
+.backs img { width: var(--back-w); height: auto; margin-left: calc(var(--back-w) * -.7); border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.45); }
 .backs img:first-child { margin-left: 0; }
 .seat-left .backs, .seat-right .backs { flex-direction: column; }
 .seat-left .backs img, .seat-right .backs img { margin-left: 0; margin-top: calc(var(--back-w) * -1.2); }
@@ -293,6 +293,10 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
 .stats-dialog .result td:last-child { color: var(--muted); font-size: .85rem; }
 .stat-tile .pct { font-size: .6em; font-weight: 600; color: var(--muted); }
 .stats-sub { margin: 0 0 6px; font-size: .95rem; color: var(--muted); }
+.panel.hero h1 { margin: 0; font-size: 2rem; }
+.panel.hero h1 span { font-size: .55em; font-weight: 600; color: var(--muted); }
+.hero-feats { list-style: none; margin: 4px 0 0; padding: 12px 0 0; border-top: 1px solid var(--plate-edge); text-align: left; display: flex; flex-direction: column; gap: 6px; font-size: .85rem; color: var(--muted); line-height: 1.4; }
+.hero-feats b { color: var(--ink); }
 .hero-links { display: flex; justify-content: center; gap: 18px; }
 .streak { font-size: .8rem; font-weight: 700; color: var(--accent); }
 @media (max-width: 480px) { .stat-tiles { grid-template-columns: repeat(2, 1fr); } }
@@ -334,7 +338,7 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
     --mini-w: min(10vw, 7vh, 40px);
   }
   .topbar { height: 54px; padding: 6px 10px; gap: 8px; }
-  .topbar h1 { font-size: 1.05rem; }
+  .topbar .logo { font-size: 1.05rem; }
   .progress { min-width: 48px; }
   .contract b { font-size: 1.2rem; }
 
@@ -395,7 +399,7 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
     --back-w: min(6vh, 26px);
   }
   .topbar { height: 40px; padding: 2px 12px; }
-  .topbar h1 { font-size: 1rem; }
+  .topbar .logo { font-size: 1rem; }
   .contract b { font-size: 1.1rem; }
   .icon-btn { width: 36px; height: 36px; }
   dialog.menu-pop { top: 40px; }
