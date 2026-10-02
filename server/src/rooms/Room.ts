@@ -55,6 +55,8 @@ export interface Room {
   ready: Set<Position>;
   ratingResult: RatingResult | null;
   version: number;
+  /** Kad je meč završen — soba se čuva još neko vreme da igrač bez veze vidi rezultat. */
+  finishedAt: number | null;
   // runtime tajmeri (ne čuvaju se)
   aiTimer: ReturnType<typeof setTimeout> | null;
   nextDealTimer: ReturnType<typeof setTimeout> | null;
@@ -98,6 +100,7 @@ export function createRoom(aiLevel: AiLevel): Room {
     ready: new Set(),
     ratingResult: null,
     version: 0,
+    finishedAt: null,
     aiTimer: null,
     nextDealTimer: null,
   };
@@ -158,14 +161,21 @@ export function allRooms(): Room[] {
   return [...roomsByCode.values()];
 }
 
-/** Soba u WAITING bez ikoga povezanog, starija od 30 min — briše se (curenje memorije). */
+/**
+ * Završen meč se čuva ovoliko posle kraja: igrač kome je pukla veza baš na kraju
+ * (telefon zaključan, osvežena stranica) po povratku vidi rezultat, a ne prazan lobi.
+ */
+export const FINISHED_KEEP_MS = 15 * 60 * 1000;
+
+/** Briše: sobu u WAITING bez ikoga, stariju od 30 min; završen meč bez ikoga, posle FINISHED_KEEP_MS. */
 export function removeAbandonedRooms(): number {
   let removed = 0;
   const now = Date.now();
   for (const room of roomsByCode.values()) {
     const st = status(room);
     const stale = now - room.createdAt > 30 * 60 * 1000;
-    if (!anyoneConnected(room) && ((st === 'WAITING' && stale) || st === 'FINISHED')) {
+    const finishedLongAgo = st === 'FINISHED' && now - (room.finishedAt ?? 0) > FINISHED_KEEP_MS;
+    if (!anyoneConnected(room) && ((st === 'WAITING' && stale) || finishedLongAgo)) {
       removeRoom(room);
       removed++;
     }
@@ -186,6 +196,7 @@ interface SerializedRoom {
   chatLog: ChatMessage[];
   ready: Position[];
   ratingResult: RatingResult | null;
+  finishedAt?: number | null;
 }
 
 export function persistRoom(room: Room): void {
@@ -200,6 +211,7 @@ export function persistRoom(room: Room): void {
     chatLog: room.chatLog,
     ready: [...room.ready],
     ratingResult: room.ratingResult,
+    finishedAt: room.finishedAt,
   };
   saveActiveRoom(room.code, JSON.stringify(data));
 }
@@ -227,6 +239,8 @@ export function loadPersistedRooms(): Room[] {
       ready: new Set(d.ready ?? []),
       ratingResult: d.ratingResult ?? null,
       version: 0,
+      // posle restarta: završen meč bez zapisanog vremena čuva se od sada
+      finishedAt: d.finishedAt ?? (d.gameState?.phase === 'MATCH_END' ? Date.now() : null),
       aiTimer: null,
       nextDealTimer: null,
     };

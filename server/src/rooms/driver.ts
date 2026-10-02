@@ -209,6 +209,7 @@ function resolveRating(room: Room): void {
 
   const result: RatingResult = { rated: room.rated, scores, deltas, newRatings, records };
   room.ratingResult = result;
+  room.finishedAt = Date.now();
   saveMatchLog({
     roomCode: room.code,
     rated: room.rated,

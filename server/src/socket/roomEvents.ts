@@ -105,14 +105,15 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
   // Reconnect: odmah vrati u sobu (ili eksplicitno "nema sobe", da klijent ne pogađa).
   const loc = getUserLocation(userId);
   const resumeRoom = loc ? getRoom(loc.code) : undefined;
-  if (resumeRoom && loc && status(resumeRoom) !== 'FINISHED') {
+  // i završen meč: ko je izgubio vezu baš na kraju, po povratku vidi rezultat (pa sam ide u lobi)
+  if (resumeRoom && loc) {
     resumeRoom.sockets[loc.seat] = socket;
     resumeRoom.seats[loc.seat].name = name;
     socket.join(resumeRoom.code);
     socket.emit('chat:backlog', resumeRoom.chatLog);
     broadcast(resumeRoom);
   } else {
-    if (resumeRoom && loc) clearUserLocation(userId);
+    if (loc) clearUserLocation(userId); // soba je u međuvremenu obrisana
     socket.emit('room:none');
   }
 
@@ -286,7 +287,8 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
       }, WAITING_GRACE_MS).unref();
       return;
     }
-    if (status(room) === 'FINISHED' && !anyoneConnected(room)) { removeRoom(room); return; }
+    // završen meč se NE briše odmah — igrač možda nije stigao da vidi rezultat (vidi FINISHED_KEEP_MS)
+    if (status(room) === 'FINISHED') { broadcast(room); return; }
     // mesto ostaje njegovo (reconnect); ako je na potezu, AI igra posle grace perioda
     broadcast(room);
     scheduleAi(room);

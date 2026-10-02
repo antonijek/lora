@@ -81,7 +81,13 @@ try {
   await api('/api/visit', { v: 'posetilac01' }); // isti dan, isti posetilac → jednom
   await api('/api/visit', { v: 'posetilac02' });
   await api('/api/visit', { v: 'LOŠ id!' });
-  const ana = io(`http://127.0.0.1:${LORA_PORT}`, { auth: { token: anaTok }, transports: ['websocket'], reconnection: false });
+  // posetilac01 igra protiv računara (2 meča počeo, 1 završio), klikne "Napravi nalog" i uđe online kao Ana
+  await api('/api/event', { v: 'posetilac01', kind: 'local_start' });
+  await api('/api/event', { v: 'posetilac01', kind: 'local_start' });
+  await api('/api/event', { v: 'posetilac01', kind: 'local_finish' });
+  await api('/api/event', { v: 'posetilac01', kind: 'signup_click' });
+  await api('/api/event', { v: 'posetilac02', kind: 'hakovanje' }); // nepoznata vrsta se ne upisuje
+  const ana = io(`http://127.0.0.1:${LORA_PORT}`, { auth: { token: anaTok, vid: 'posetilac01' }, transports: ['websocket'], reconnection: false });
   ana.last = null;
   ana.errors = [];
   ana.on('room:state', s => { ana.last = s; });
@@ -91,6 +97,10 @@ try {
   check(st1.visitorsToday === 2, `posetioci danas = 2 (${st1.visitorsToday})`);
   check(st1.activeToday === 1 && st1.onlineNow === 1 && st1.totalPlayers === 1, `aktivni/online/ukupno = 1 (${st1.activeToday}/${st1.onlineNow}/${st1.totalPlayers})`);
   check(st1.daily.at(-1).visitors === 2 && st1.daily.at(-1).active === 1, 'današnji dan u grafikonu');
+  check(st1.localStartedToday === 2 && st1.localFinished7 === 1 && st1.daily.at(-1).localMatches === 2, `mečevi protiv računara (${st1.localStartedToday}, ${st1.localFinished7})`);
+  const f = st1.funnel;
+  check(f.visitors === 2 && f.playedLocal === 1 && f.finishedLocal === 1 && f.signupClicks === 1 && f.newOnline === 1 && f.fromLocal === 1,
+    `put do naloga ${JSON.stringify(f)}`);
 
   const pl = (await api('/api/admin/players', null, adminTok)).data.players;
   check(pl.length === 1 && pl[0].name === 'Ana' && pl[0].email === 'ana@test.rs' && pl[0].online && !pl[0].banned, 'spisak igrača sa emailom iz preferansa');

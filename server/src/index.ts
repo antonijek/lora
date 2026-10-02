@@ -4,7 +4,7 @@ import path from 'node:path';
 import express from 'express';
 import compression from 'compression';
 import { Server as SocketIOServer } from 'socket.io';
-import { initDb, flushPersist, topPlayers, matchesForUser, recordVisit, userMatchRecords, userDays, getRating } from './db.js';
+import { initDb, flushPersist, topPlayers, matchesForUser, recordVisit, recordEvent, EVENT_KINDS, userMatchRecords, userDays, getRating } from './db.js';
 import { computeStats, streak } from '../../engine/dist/stats.js';
 import { adminRouter } from './admin.js';
 import { seoRouter } from './seo.js';
@@ -50,6 +50,12 @@ async function main(): Promise<void> {
   app.post('/api/visit', (req, res) => {
     const v = req.body?.v;
     if (typeof v === 'string' && /^[a-z0-9]{8,32}$/.test(v)) recordVisit(v);
+    res.status(204).end();
+  });
+  // Anonimni događaji iz igre protiv računara (isti nasumični id kao /api/visit)
+  app.post('/api/event', (req, res) => {
+    const { v, kind } = req.body ?? {};
+    if (typeof v === 'string' && /^[a-z0-9]{8,32}$/.test(v) && (EVENT_KINDS as readonly string[]).includes(kind)) recordEvent(v, kind);
     res.status(204).end();
   });
   app.get('/api/leaderboard', (_req, res) => res.json({ players: topPlayers(20) }));

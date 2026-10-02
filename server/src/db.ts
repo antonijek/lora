@@ -53,8 +53,19 @@ export async function initDb(): Promise<void> {
     visitor TEXT NOT NULL,
     PRIMARY KEY (day, visitor)
   )`);
+  // Anonimni događaji po pregledaču (bez ličnih podataka): meč protiv računara
+  // počet/završen, klik na "Napravi nalog" — put od posetioca do naloga.
+  db.run(`CREATE TABLE IF NOT EXISTS visit_events (
+    day TEXT NOT NULL,
+    visitor TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    n INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (day, visitor, kind)
+  )`);
   const cols = all<{ name: string }>('PRAGMA table_info(lora_players)').map(c => c.name);
   if (!cols.includes('last_seen_at')) db.run('ALTER TABLE lora_players ADD COLUMN last_seen_at TEXT');
+  // pregledač iz kog je igrač prvi put ušao online (da se vidi ko je pre naloga igrao protiv računara)
+  if (!cols.includes('visitor')) db.run('ALTER TABLE lora_players ADD COLUMN visitor TEXT');
   persist();
 }
 
@@ -121,6 +132,22 @@ export function markActive(userId: number): void {
 
 export function recordVisit(visitor: string): void {
   run("INSERT OR IGNORE INTO visits (day, visitor) VALUES (date('now'), ?)", [visitor]);
+}
+
+export const EVENT_KINDS = ['local_start', 'local_finish', 'signup_click'] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
+
+export function recordEvent(visitor: string, kind: EventKind): void {
+  run(
+    `INSERT INTO visit_events (day, visitor, kind) VALUES (date('now'), ?, ?)
+     ON CONFLICT(day, visitor, kind) DO UPDATE SET n = n + 1`,
+    [visitor, kind],
+  );
+}
+
+/** Prvi pregledač iz kog je igrač ušao online — upisuje se samo jednom. */
+export function linkVisitor(userId: number, visitor: string): void {
+  run('UPDATE lora_players SET visitor = ? WHERE user_id = ? AND visitor IS NULL', [visitor, userId]);
 }
 
 export function getRating(userId: number): number {

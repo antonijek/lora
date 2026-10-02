@@ -134,6 +134,7 @@ function stats() {
   const visitors = series('SELECT day, COUNT(*) AS c FROM visits WHERE day >= ? GROUP BY day');
   const matches = series('SELECT date(ended_at) AS day, COUNT(*) AS c FROM match_log WHERE date(ended_at) >= ? GROUP BY day');
   const newPlayers = series('SELECT date(created_at) AS day, COUNT(*) AS c FROM lora_players WHERE date(created_at) >= ? GROUP BY day');
+  const localMatches = series("SELECT day, SUM(n) AS c FROM visit_events WHERE kind = 'local_start' AND day >= ? GROUP BY day");
   const since = (d: number) => `date('now', '-${d - 1} days')`;
   return {
     onlineNow: listOnlineUsers().length,
@@ -150,12 +151,27 @@ function stats() {
     matchesToday: count("SELECT COUNT(*) AS c FROM match_log WHERE date(ended_at) = date('now')"),
     matches7: count(`SELECT COUNT(*) AS c FROM match_log WHERE date(ended_at) >= ${since(7)}`),
     matchesTotal: count('SELECT COUNT(*) AS c FROM match_log'),
+    // protiv računara (i bez naloga) — iz anonimnih događaja
+    localStartedToday: count("SELECT COALESCE(SUM(n), 0) AS c FROM visit_events WHERE kind = 'local_start' AND day = date('now')"),
+    localStarted7: count(`SELECT COALESCE(SUM(n), 0) AS c FROM visit_events WHERE kind = 'local_start' AND day >= ${since(7)}`),
+    localFinished7: count(`SELECT COALESCE(SUM(n), 0) AS c FROM visit_events WHERE kind = 'local_finish' AND day >= ${since(7)}`),
+    // put do naloga, poslednjih 30 dana: posetioci → igrali protiv računara → kliknuli "Napravi nalog" → ušli online
+    funnel: {
+      visitors: count(`SELECT COUNT(DISTINCT visitor) AS c FROM visits WHERE day >= ${since(30)}`),
+      playedLocal: count(`SELECT COUNT(DISTINCT visitor) AS c FROM visit_events WHERE kind = 'local_start' AND day >= ${since(30)}`),
+      finishedLocal: count(`SELECT COUNT(DISTINCT visitor) AS c FROM visit_events WHERE kind = 'local_finish' AND day >= ${since(30)}`),
+      signupClicks: count(`SELECT COUNT(DISTINCT visitor) AS c FROM visit_events WHERE kind = 'signup_click' AND day >= ${since(30)}`),
+      newOnline: count(`SELECT COUNT(*) AS c FROM lora_players WHERE date(created_at) >= ${since(30)}`),
+      fromLocal: count(`SELECT COUNT(*) AS c FROM lora_players WHERE date(created_at) >= ${since(30)}
+        AND visitor IN (SELECT visitor FROM visit_events WHERE kind = 'local_start')`),
+    },
     daily: days.map(day => ({
       day,
       active: active.get(day) ?? 0,
       visitors: visitors.get(day) ?? 0,
       matches: matches.get(day) ?? 0,
       newPlayers: newPlayers.get(day) ?? 0,
+      localMatches: localMatches.get(day) ?? 0,
     })),
   };
 }

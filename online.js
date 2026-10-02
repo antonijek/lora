@@ -98,7 +98,10 @@ export function initOnline(hooks) {
     }
     socket?.disconnect();
     let connectedOnce = false;
-    socket = io({ path: `${BASE}socket.io`, auth: { token } });
+    let vid = null;
+    try { vid = localStorage.getItem('lora.vid'); } catch {}
+    // vid: da admin vidi ko je pre naloga igrao protiv računara (anonimno)
+    socket = io({ path: `${BASE}socket.io`, auth: { token, vid } });
 
     socket.on('connect', () => { connectedOnce = true; });
     socket.on('connect_error', err => {
@@ -366,6 +369,12 @@ export function initOnline(hooks) {
       }
     },
     showLobby,
+    /** Pravo na formu za registraciju (poziv posle meča protiv računara). */
+    register() {
+      if (token) { this.start(); return; }
+      setRegistering(true);
+      showLogin();
+    },
     async send(action) {
       const res = await emit('game:action', action);
       if (res.error) hooks.toast(res.error);

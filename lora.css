@@ -277,6 +277,14 @@ dialog select { font: inherit; padding: 8px; border-radius: 8px; }
 .records ul { margin: 6px 0 0; padding-left: 18px; }
 .records li { margin: 2px 0; }
 
+/* poziv da se napravi nalog (kraj meča protiv računara) */
+.nudge { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,.05); border: 1px solid var(--plate-edge); }
+.nudge b { font-size: 1rem; }
+.nudge p { margin: 4px 0 10px; color: var(--muted); font-size: .9rem; line-height: 1.4; }
+.nudge-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.stats-note { margin: 12px 0 0; font-size: .85rem; color: var(--muted); }
+.stats-note .link { font-size: inherit; }
+
 /* moja statistika */
 .stats-dialog { width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; }
 .stats-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }

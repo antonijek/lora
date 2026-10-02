@@ -12,6 +12,22 @@ import { initOnline } from './online.js';
 // ?fast — bez pauza (headless testovi)
 const FAST = new URLSearchParams(location.search).has('fast');
 const AI_DELAY = FAST ? 0 : 650;
+
+// nasumičan id pregledača za admin statistiku (posete, mečevi protiv računara) — bez ličnih podataka
+const VISITOR = (() => {
+  let vid = null;
+  try { vid = localStorage.getItem('lora.vid'); } catch {}
+  if (!vid) {
+    vid = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
+    try { localStorage.setItem('lora.vid', vid); } catch {}
+  }
+  return vid;
+})();
+/** Anonimni događaj za admin statistiku (lokalni dev server nema /api — greška se tiho ignoriše). */
+function track(kind) {
+  if (FAST) return;
+  fetch('api/event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ v: VISITOR, kind }) }).catch(() => {});
+}
 const TRICK_PAUSE = FAST ? 0 : 1100;
 // v2: izbor igara (stari snimci nemaju chooser/used)
 const SAVE_KEY = 'lora.save.v2';
@@ -82,6 +98,7 @@ function newLocalGame() {
   dealEndShown = null;
   game = new LoraGame();
   localMatchId = Date.now().toString(36);
+  track('local_start');
   lastView = null;
   save();
   render();
@@ -450,6 +467,8 @@ function showDealEnd() {
   $('dealRecords').innerHTML = recs.length
     ? `<b>🏆 Novi lični rekord!</b><ul>${recs.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : '';
   if (mode === 'local' && !finished) markLocalDay();
+  // posle meča protiv računara, ko nema nalog: poziv da igra i sa ljudima
+  $('signupNudge').hidden = !(finished && mode === 'local' && !storedToken());
 
   const btn = $('nextDealBtn');
   btn.disabled = false;
@@ -489,6 +508,7 @@ function recordLocalMatch(v) {
   st.days.push(localDay());
   st.last = { id: localMatchId, records };
   saveLocalStats(st);
+  track('local_finish');
   return records;
 }
 
@@ -505,7 +525,8 @@ async function renderStats() {
   const body = $('statsBody');
   if (statsTab === 'local') {
     const st = loadLocalStats();
-    body.innerHTML = statsHtml(computeStats(st.matches), streak(st.days, localDay()), null);
+    body.innerHTML = statsHtml(computeStats(st.matches), streak(st.days, localDay()), null) +
+      (storedToken() ? '' : '<p class="stats-note">Ova statistika se čuva samo na ovom uređaju. <button class="link" type="button" data-signup>Napravi besplatan nalog</button> i igraj i sa pravim ljudima.</p>');
     return;
   }
   const token = storedToken();
@@ -546,6 +567,13 @@ $('statsTabs').addEventListener('click', e => {
   renderStats();
 });
 $('closeStatsBtn').addEventListener('click', () => $('statsDlg').close());
+$('statsBody').addEventListener('click', e => {
+  if (!e.target.closest('[data-signup]')) return;
+  track('signup_click');
+  $('statsDlg').close();
+  rememberMode('online');
+  online.register();
+});
 $('statsMenuBtn').addEventListener('click', () => { $('menu').close(); openStats(); });
 $('startStatsBtn').addEventListener('click', () => openStats());
 $('lobbyStatsBtn').addEventListener('click', () => openStats('online'));
@@ -704,6 +732,13 @@ $('nextDealBtn').addEventListener('click', () => {
 $('dealEnd').addEventListener('cancel', e => e.preventDefault());
 $('dealSheetBtn').addEventListener('click', renderSheet);
 $('viewCardsBtn').addEventListener('click', showRevealed);
+$('nudgeLater').addEventListener('click', () => { $('signupNudge').hidden = true; });
+$('nudgeSignup').addEventListener('click', () => {
+  track('signup_click');
+  $('dealEnd').close();
+  rememberMode('online');
+  online.register();
+});
 $('closeCardsBtn').addEventListener('click', () => $('cardsDlg').close());
 $('sheetBtn').addEventListener('click', renderSheet);
 $('closeSheetBtn').addEventListener('click', () => $('sheet').close());
@@ -766,17 +801,8 @@ online = initOnline({
   showScreen,
 });
 
-// brojač posetilaca za admin statistiku: nasumičan id, bez ličnih podataka
-// (lokalni dev server nema /api — greška se tiho ignoriše)
-if (!FAST) {
-  let vid = null;
-  try { vid = localStorage.getItem('lora.vid'); } catch {}
-  if (!vid) {
-    vid = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
-    try { localStorage.setItem('lora.vid', vid); } catch {}
-  }
-  fetch('api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ v: vid }) }).catch(() => {});
-}
+// brojač posetilaca za admin statistiku
+if (!FAST) fetch('api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ v: VISITOR }) }).catch(() => {});
 
 // admin prečica (ikonica u zaglavlju, lobiju i na početnom ekranu) — samo za admin nalog
 try {

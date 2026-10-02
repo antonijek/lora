@@ -220,6 +220,14 @@ try {
   check(Array.isArray(r.records) && r.records.every(x => x.length === 0), 'prvi meč nema "novi rekord"');
   check((await api('/api/stats')).status === 401, 'statistika bez prijave → 401');
 
+  // --- veza pukla baš na kraju (telefon zaključan, F5): po povratku rezultat, ne prazan lobi
+  players[0].close();
+  await wait(300);
+  const A9 = client(ra.data.token);
+  await until(() => A9.last?.status === 'FINISHED', 3000, 'rezultat posle ponovnog povezivanja');
+  check(A9.last.rating?.scores?.length === 4, 'posle ponovnog povezivanja igrač vidi kraj meča i rezultat');
+  players[0] = A9;
+
   // --- napuštanje: novi meč, Boris napusti → AI preuzima, pa se vrati
   await emit(players[0], 'room:leaveFinished');
   await emit(players[1], 'room:leaveFinished');
