@@ -446,16 +446,19 @@ function showDealEnd() {
   const finished = v.phase === 'MATCH_END';
   const rating = mode === 'online' ? onlineState.rating : null;
 
-  $('dealEndTitle').textContent = finished
-    ? (v.winners.includes(c.me) ? 'Pobeda! 🎉' : `Pobednik: ${v.winners.map(p => names[p]).join(', ')}`)
-    : `${CONTRACT_NAMES[last.contract]} (igra: ${names[last.chooser]}) — kraj`;
+  // kraj celog meča ima svoj izgled (postolje, medalje, rejting); posle partije — tabela
+  $('dealEnd').classList.toggle('final', finished);
+  $('finalTop').hidden = !finished;
+  $('finalView').hidden = !finished;
+  $('dealTable').hidden = finished;
+  $('confetti').replaceChildren();
   const min = Math.min(...v.scores);
-  const ratingCol = finished && rating?.rated;
-  $('dealEnd').querySelector('thead tr').innerHTML =
-    `<th></th><th>Ova igra</th><th>Ukupno</th>${ratingCol ? '<th>Rejting</th>' : ''}`;
+  // ukupni poeni su i u tabeli (testovi i pregled čitaju kolonu "Ukupno")
+  $('dealEnd').querySelector('thead tr').innerHTML = '<th></th><th>Ova igra</th><th>Ukupno</th>';
   $('dealEndBody').innerHTML = [0, 1, 2, 3].map(p =>
-    `<tr><td>${esc(names[p])}</td><td>${fmt(last.points[p])}</td><td class="${v.scores[p] === min ? 'best' : ''}">${v.scores[p]}</td>` +
-    (ratingCol ? `<td>${rating.newRatings[p]} (${fmt(rating.deltas[p])})</td>` : '') + '</tr>').join('');
+    `<tr><td>${esc(names[p])}</td><td>${fmt(last.points[p])}</td><td class="${v.scores[p] === min ? 'best' : ''}">${v.scores[p]}</td></tr>`).join('');
+  if (finished) renderFinal(c, rating);
+  else $('dealEndTitle').textContent = `${CONTRACT_NAMES[last.contract]} (igra: ${names[last.chooser]}) — kraj`;
 
   // "Pogledaj karte": snimak ruku ove partije — ostaje isti i ako sledeća partija krene (online tajmer)
   revealedSnap = v.revealed ? { title: CONTRACT_NAMES[last.contract], chooser: names[last.chooser], names: [...names], hands: v.revealed, points: [...last.points] } : null;
@@ -479,6 +482,54 @@ function showDealEnd() {
 }
 
 const fmt = n => (n > 0 ? `+${n}` : String(n));
+
+const TROPHY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/></svg>';
+
+/** Kraj celog meča: mesto, pobednik, poredak sa medaljama, rejting, najbolja/najteža partija. */
+function renderFinal(c, rating) {
+  const { v, names, seats } = c;
+  const P = [0, 1, 2, 3];
+  const place = p => 1 + P.filter(q => v.scores[q] < v.scores[p]).length; // jednaki poeni = isto mesto
+  const myPlace = place(c.me);
+  const won = myPlace === 1;
+  const medal = ['', 'gold', 'silver', 'bronze', 'plain'][myPlace];
+  $('finalTop').innerHTML = `<div class="emblem ${medal}">${won ? TROPHY : `<b>${myPlace}.</b>`}<span>${won ? 'pobeda' : 'mesto'}</span></div>`;
+  $('dealEndTitle').textContent = won ? (v.winners.length > 1 ? 'Podeljena pobeda!' : 'Pobeda!') : 'Kraj meča';
+  const min = Math.min(...v.scores);
+  $('finalSub').textContent = won
+    ? `Najmanje poena posle ${v.history.length} partija: ${min}`
+    : `Pobednik: ${v.winners.map(p => names[p]).join(', ')} · ${min} poena`;
+
+  const rated = rating?.rated;
+  $('finalList').innerHTML = [...P].sort((a, b) => v.scores[a] - v.scores[b]).map((p, i) => {
+    const pl = place(p);
+    const s = seats?.[p];
+    const human = s && (s.kind === 'human' || s.left);
+    const rt = rated && human
+      ? `<span class="fr-rating">rejting ${rating.newRatings[p]} <i class="${rating.deltas[p] >= 0 ? 'up' : 'down'}">${fmt(rating.deltas[p])}</i></span>` : '';
+    return `<li class="${pl === 1 ? 'win' : ''}${p === c.me ? ' me' : ''}" style="animation-delay:${0.15 + i * 0.12}s">` +
+      `<span class="rank r${pl}">${pl}</span>` +
+      `<span class="avatar" style="background:${COLORS[p]}">${esc(String(names[p])[0] ?? '?')}</span>` +
+      `<span class="fr-name">${esc(names[p])}${rt}</span><b class="fr-pts">${v.scores[p]}</b></li>`;
+  }).join('');
+
+  const mine = v.history.map(h => ({ k: h.contract, p: h.points[c.me] }));
+  const best = mine.reduce((a, b) => (b.p < a.p ? b : a));
+  const worst = mine.reduce((a, b) => (b.p > a.p ? b : a));
+  $('finalNote').textContent = `Vaša najbolja partija: ${CONTRACT_NAMES[best.k]} ${fmt(best.p)} · najteža: ${CONTRACT_NAMES[worst.k]} ${fmt(worst.p)}`;
+
+  if (won) {
+    const colors = ['#f2c14e', '#5fd08a', '#e25d5d', '#2f7dd1', '#ffffff', '#c98a4b'];
+    $('confetti').replaceChildren(...Array.from({ length: 42 }, (_, i) => {
+      const e = document.createElement('i');
+      e.style.left = `${(i * 37) % 100}%`;
+      e.style.background = colors[i % colors.length];
+      e.style.animationDelay = `${((i * 13) % 20) / 10}s`;
+      e.style.animationDuration = `${2.4 + ((i * 7) % 10) / 10}s`;
+      return e;
+    }));
+  }
+}
 
 // ---------- moja statistika ----------
 

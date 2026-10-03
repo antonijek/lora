@@ -52,6 +52,12 @@ async function actOnce(page) {
     const btn = page.locator('#nextDealBtn');
     if (await btn.isEnabled()) {
       const txt = await btn.textContent();
+      if (txt.includes('lobi')) {
+        // kraj meča: poseban prikaz (postolje, rejting) — mora da postoji
+        if (!(await page.locator('#dealEnd.final .final-list li').count())) throw new Error('kraj meča bez posebnog prikaza');
+        await page.waitForTimeout(800);
+        await page.screenshot({ path: `tools/screenshot-online-final-${page.viewportSize().width}.png` });
+      }
       await btn.click(quick);
       return txt.includes('lobi') ? 'done' : 'next';
     }

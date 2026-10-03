@@ -83,8 +83,16 @@
   </dialog>
 
   <dialog id="dealEnd">
+    <!-- kraj celog meča: isti prozor, ali drugačiji izgled (klasa "final") -->
+    <div id="confetti" class="confetti" aria-hidden="true"></div>
+    <div id="finalTop" class="final-top" hidden></div>
     <h2 id="dealEndTitle"></h2>
-    <table class="result">
+    <div id="finalView" hidden>
+      <p id="finalSub" class="final-sub"></p>
+      <ol id="finalList" class="final-list"></ol>
+      <p id="finalNote" class="final-note"></p>
+    </div>
+    <table id="dealTable" class="result">
       <thead><tr><th></th><th>Ova igra</th><th>Ukupno</th></tr></thead>
       <tbody id="dealEndBody"></tbody>
     </table>
