@@ -13,6 +13,7 @@
     "test:server": "cd server && node test/rating.mjs && node test/e2e.mjs",
     "test:admin": "cd server && node test/admin.mjs",
     "deploy": "bash tools/deploy.sh",
+    "qa": "cd engine && node --import tsx tools/fuzz.ts 200 && cd .. && node tools/qa-local.mjs && node tools/qa-online.mjs",
     "indexnow": "node tools/notify-indexnow.mjs",
     "og-image": "node tools/og-image.mjs",
     "cards-webp": "node tools/cards-webp.mjs"

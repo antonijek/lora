@@ -7,3 +7,4 @@ tools/shot-*.png
 server/dist/
 server/*.db
 server/.env
+tools/qa-out/

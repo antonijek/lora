@@ -122,7 +122,7 @@ async function main(): Promise<void> {
   setInterval(() => {
     const removed = removeAbandonedRooms();
     if (removed) console.log(`[CLEANUP] Removed ${removed} room(s)`);
-  }, 5 * 60 * 1000);
+  }, Number(process.env.CLEANUP_MS ?? 5 * 60 * 1000));
 }
 
 main().catch(err => {

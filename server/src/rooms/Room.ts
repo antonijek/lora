@@ -57,6 +57,8 @@ export interface Room {
   version: number;
   /** Kad je meč završen — soba se čuva još neko vreme da igrač bez veze vidi rezultat. */
   finishedAt: number | null;
+  /** Poslednja promena (za čišćenje napuštenih soba). Ne čuva se — posle restarta kreće od sada. */
+  lastActivity: number;
   // runtime tajmeri (ne čuvaju se)
   aiTimer: ReturnType<typeof setTimeout> | null;
   nextDealTimer: ReturnType<typeof setTimeout> | null;
@@ -101,6 +103,7 @@ export function createRoom(aiLevel: AiLevel): Room {
     ratingResult: null,
     version: 0,
     finishedAt: null,
+    lastActivity: Date.now(),
     aiTimer: null,
     nextDealTimer: null,
   };
@@ -166,8 +169,13 @@ export function allRooms(): Room[] {
  * (telefon zaključan, osvežena stranica) po povratku vidi rezultat, a ne prazan lobi.
  */
 export const FINISHED_KEEP_MS = 15 * 60 * 1000;
+const DESERTED_MS = Number(process.env.DESERTED_MS ?? 30 * 60 * 1000);
+const FORGOTTEN_MS = 24 * 60 * 60 * 1000;
 
-/** Briše: sobu u WAITING bez ikoga, stariju od 30 min; završen meč bez ikoga, posle FINISHED_KEEP_MS. */
+/**
+ * Briše (samo kad niko nije povezan): sobu u WAITING stariju od 30 min; završen meč posle
+ * FINISHED_KEEP_MS; meč bez ijednog čoveka posle 30 min; meč u kome niko nije bio ceo dan.
+ */
 export function removeAbandonedRooms(): number {
   let removed = 0;
   const now = Date.now();
@@ -175,7 +183,12 @@ export function removeAbandonedRooms(): number {
     const st = status(room);
     const stale = now - room.createdAt > 30 * 60 * 1000;
     const finishedLongAgo = st === 'FINISHED' && now - (room.finishedAt ?? 0) > FINISHED_KEEP_MS;
-    if (!anyoneConnected(room) && ((st === 'WAITING' && stale) || finishedLongAgo)) {
+    // meč u toku iz koga su svi ljudi otišli (za stolom samo AI) — niko ga više ne igra
+    const idle = now - room.lastActivity;
+    const deserted = st === 'PLAYING' && humanSeats(room).length === 0 && idle > DESERTED_MS;
+    // ljudi za stolom, ali niko nije povezan ceo dan — meč je zaboravljen
+    const forgotten = st === 'PLAYING' && idle > FORGOTTEN_MS;
+    if (!anyoneConnected(room) && ((st === 'WAITING' && stale) || finishedLongAgo || deserted || forgotten)) {
       removeRoom(room);
       removed++;
     }
@@ -241,6 +254,7 @@ export function loadPersistedRooms(): Room[] {
       version: 0,
       // posle restarta: završen meč bez zapisanog vremena čuva se od sada
       finishedAt: d.finishedAt ?? (d.gameState?.phase === 'MATCH_END' ? Date.now() : null),
+      lastActivity: Date.now(),
       aiTimer: null,
       nextDealTimer: null,
     };

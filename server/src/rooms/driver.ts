@@ -56,6 +56,7 @@ export function broadcast(room: Room): void {
   // rejting PRE slanja, da ga igrači dobiju u istom stanju kao kraj meča
   if (room.game?.getState().phase === 'MATCH_END' && !room.ratingResult) resolveRating(room);
   room.version++;
+  room.lastActivity = Date.now();
   SEATS.forEach(seat => {
     room.sockets[seat]?.emit('room:state', buildRoomState(room, seat));
   });

@@ -54,7 +54,7 @@ try {
   let auth = await startAuth();
   await start('lora', path.resolve('.'), {
     PORT: String(LORA_PORT), JWT_SECRET: SECRET, AUTH_URL: `http://127.0.0.1:${AUTH_PORT}`, DB_PATH: path.join(tmp, 'lora.db'),
-    AI_DELAY_MS: '50', CHOOSE_DELAY_MS: '50', AFTER_TRICK_MS: '50',
+    AI_DELAY_MS: '50', CHOOSE_DELAY_MS: '50', AFTER_TRICK_MS: '50', CLEANUP_MS: '500', DESERTED_MS: '3000',
   });
   const ra = await api('/api/register', { email: 'admin@test.rs', password: 'tajna123', name: 'Admin' });
   const rb = await api('/api/register', { email: 'ana@test.rs', password: 'tajna123', name: 'Ana' });
@@ -153,6 +153,15 @@ try {
   await until(() => gotNone, 3000, 'Ana izbačena iz zatvorene sobe');
   check((await api('/api/admin/rooms', null, adminTok)).data.rooms.length === 0, 'soba je nestala');
   check((await api('/api/admin/rooms/NEMA1/close', {}, adminTok)).status === 404, 'nepostojeća soba → 404');
+
+  // --- meč iz koga su svi ljudi otišli ne sme da ostane zauvek (čišćenje posle DESERTED_MS)
+  await emit(ana, 'room:create', {});
+  await emit(ana, 'room:start');
+  await wait(300);
+  await emit(ana, 'room:leave');
+  check((await api('/api/admin/rooms', null, adminTok)).data.rooms.length === 1, 'posle napuštanja meč postoji (može se vratiti istim kodom)');
+  await wait(4500);
+  check((await api('/api/admin/rooms', null, adminTok)).data.rooms.length === 0, 'meč bez ijednog čoveka je obrisan posle isteka vremena');
 
   // --- ban preko preferansa: veza se prekida, nova konekcija odbijena
   await emit(ana, 'room:create', {});
