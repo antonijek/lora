@@ -13,6 +13,9 @@ VPS_HOST="root@213.199.32.240"
 REMOTE_DIR="/var/www/lora"
 DOMAIN="lora.antonije.dev"
 
+# CSS sa neuparenom zagradom se ne šalje (tiho gasi pravila — ekrani se raspadnu)
+node tools/check-css.mjs
+
 if ! git diff --quiet HEAD; then
   echo "!! Imate necommitovane izmene — deploy šalje samo poslednji commit (HEAD)."
 fi

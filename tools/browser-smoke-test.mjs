@@ -16,6 +16,10 @@ try {
     page.on('pageerror', e => errors.push(String(e)));
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     page.on('requestfailed', r => errors.push(`request failed: ${r.url()}`));
+    // početni ekran mora da prekriva ceo ekran (pokvaren CSS ga je jednom ostavio u uglu)
+    await page.goto(`http://localhost:${PORT}/`);
+    const box = await page.locator('#startScreen').boundingBox();
+    if (!box || box.width < viewport.width - 2 || box.height < viewport.height - 2) errors.push(`[${viewport.width}px] početni ekran ne prekriva ceo ekran (${JSON.stringify(box)})`);
     await page.goto(`http://localhost:${PORT}/?fast&local`);
     await page.evaluate(() => localStorage.clear());
     await page.reload();
