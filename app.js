@@ -478,7 +478,7 @@ function showDealEnd() {
   if (finished) renderFinal(c, rating);
   else {
     $('dealEndTitle').textContent = CONTRACT_NAMES[last.contract];
-    $('dealSub').textContent = `Kraj partije ${last.dealIndex + 1}/28 · igra: ${names[last.chooser]}`;
+    $('dealSub').textContent = `Kraj partije ${last.dealIndex + 1}/28 · čija igra: ${whose(names[last.chooser])}`;
   }
 
   // "Pogledaj karte": snimak ruku ove partije — ostaje isti i ako sledeća partija krene (online tajmer)
@@ -503,6 +503,8 @@ function showDealEnd() {
 }
 
 const fmt = n => (n > 0 ? `+${n}` : String(n));
+// "čija igra" — isto za sve igrače (igra ne zna da li treba "igrao" ili "igrala")
+const whose = name => (name === 'Vi' ? 'Vaša' : name);
 
 const TROPHY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/></svg>';
 
@@ -655,7 +657,7 @@ function showRevealed() {
   const r = revealedSnap;
   if (!r) return;
   $('cardsTitle').textContent = r.title;
-  $('cardsSub').textContent = `igra: ${r.chooser} · sve karte kako su podeljene`;
+  $('cardsSub').textContent = `čija igra: ${whose(r.chooser)} · sve karte kako su podeljene`;
   $('cardsBody').replaceChildren(...r.hands.map((hand, p) => {
     const row = document.createElement('div');
     row.className = 'reveal-row';
