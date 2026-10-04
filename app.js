@@ -135,6 +135,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 
 // "Poslednji štih" na telefonu: dodir prikaže prethodni štih na stolu na par sekundi
 let peekTrick = null;
+let contractKey = null; // za kratko svetljenje naziva igre kad se izabere
 let peekTimer = null;
 
 function render(showTrick = null) {
@@ -146,6 +147,13 @@ function render(showTrick = null) {
   const rel = p => (p - c.me + 4) % 4;
 
   $('contractName').textContent = v.contract ? CONTRACT_NAMES[v.contract] : 'Bira se igra';
+  const ck = `${v.dealIndex}:${v.contract}`;
+  if (v.contract && contractKey && ck !== contractKey) {
+    $('contractName').classList.remove('flash');
+    void $('contractName').offsetWidth;
+    $('contractName').classList.add('flash');
+  }
+  contractKey = ck;
   // ko je delio (D) i čija je igra (oznaka sa nazivom) vide se na pločicama igrača
   $('dealNo').textContent = `${v.dealIndex + 1} / 28`;
   $('dealBar').style.width = `${((v.dealIndex + 1) / 28) * 100}%`;
@@ -379,7 +387,7 @@ function step() {
   const v = game.getPlayerView(s.turn);
   if (s.turn === 0) {
     if (v.mustPass) {
-      timer = setTimeout(() => { toast('Nemate kartu koja može — dalje'); game.pass(0); afterLocalAction(); }, FAST ? 0 : 700);
+      timer = setTimeout(() => { passNote(); game.pass(0); afterLocalAction(); }, FAST ? 0 : 700);
     }
     return;
   }
@@ -388,8 +396,7 @@ function step() {
     const a = chooseAction(game.getPlayerView(turn), level);
     if (a.type === 'pass') game.pass(turn);
     else if (a.type === 'choose') {
-      game.choose(turn, a.contract);
-      toast(`${LOCAL_NAMES[turn]} bira: ${CONTRACT_NAMES[a.contract]}`);
+      game.choose(turn, a.contract); // izabrana igra se vidi u zaglavlju (kratko zasvetli) i na pločici
     } else game.play(turn, a.cardId);
     afterLocalAction();
   }, s.phase === 'CHOOSING' ? AI_DELAY * 2 : AI_DELAY);
@@ -418,7 +425,7 @@ function afterOnlineUpdate() {
   if (v.phase === 'DEAL_END' && $('dealEnd').open) updateReadyButton();
   if (v.mustPass && v.turn === st.mySeat && passSentFor !== st.version) {
     passSentFor = st.version;
-    toast('Nemate kartu koja može — dalje');
+    passNote();
     setTimeout(() => online.send({ type: 'pass' }), FAST ? 0 : 700);
   }
 }
@@ -455,10 +462,20 @@ function showDealEnd() {
   const min = Math.min(...v.scores);
   // ukupni poeni su i u tabeli (testovi i pregled čitaju kolonu "Ukupno")
   $('dealEnd').querySelector('thead tr').innerHTML = '<th></th><th>Ova igra</th><th>Ukupno</th>';
-  $('dealEndBody').innerHTML = [0, 1, 2, 3].map(p =>
-    `<tr><td>${esc(names[p])}</td><td>${fmt(last.points[p])}</td><td class="${v.scores[p] === min ? 'best' : ''}">${v.scores[p]}</td></tr>`).join('');
+  $('dealEndBody').innerHTML = [0, 1, 2, 3].map(p => {
+    const d = last.points[p];
+    const lead = v.scores[p] === min;
+    return `<tr class="${lead ? 'lead' : ''}${p === c.me ? ' me' : ''}">` +
+      `<td><span class="who"><span class="avatar" style="background:${COLORS[p]}">${esc(String(names[p])[0] ?? '?')}</span><span class="nm">${esc(names[p])}</span></span></td>` +
+      `<td><span class="pts ${d > 0 ? 'plus' : d < 0 ? 'minus' : ''}">${fmt(d)}</span></td>` +
+      `<td class="${lead ? 'best' : ''}">${v.scores[p]}</td></tr>`;
+  }).join('');
+  $('dealSub').hidden = finished;
   if (finished) renderFinal(c, rating);
-  else $('dealEndTitle').textContent = `${CONTRACT_NAMES[last.contract]} (igra: ${names[last.chooser]}) — kraj`;
+  else {
+    $('dealEndTitle').textContent = CONTRACT_NAMES[last.contract];
+    $('dealSub').textContent = `Kraj partije ${last.dealIndex + 1}/28 · igra: ${names[last.chooser]}`;
+  }
 
   // "Pogledaj karte": snimak ruku ove partije — ostaje isti i ako sledeća partija krene (online tajmer)
   revealedSnap = v.revealed ? { title: CONTRACT_NAMES[last.contract], chooser: names[last.chooser], names: [...names], hands: v.revealed, points: [...last.points] } : null;
@@ -677,6 +694,18 @@ function renderSheet() {
 }
 
 // ---------- toast ----------
+
+/** "Dalje" u Lori: poruka preko mojih karata (tada su sve zatamnjene), ne preko stola. */
+let passTimer = null;
+function passNote() {
+  const n = $('passNote');
+  n.innerHTML = 'Nemate odgovarajuću kartu — <b>dalje +1</b>';
+  n.hidden = true;
+  void n.offsetWidth; // ponovo pokreni animaciju
+  n.hidden = false;
+  clearTimeout(passTimer);
+  passTimer = setTimeout(() => { n.hidden = true; }, 2200);
+}
 
 function toast(msg) {
   const t = $('toast');
