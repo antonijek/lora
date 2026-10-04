@@ -168,16 +168,26 @@ dialog.menu-pop::backdrop { background: rgba(0,0,0,.3); }
   background: var(--plate); border: 1px solid var(--plate-edge);
 }
 .last-btn.on { border-color: var(--accent); color: var(--accent); }
-/* telefon (uspravno ili položeno): umesto stalnog prikaza — dugme */
-@media (max-width: 640px), (max-height: 500px) and (orientation: landscape) {
+/* uspravan telefon: mali prikaz štiha u gornjem levom uglu stola (tu je uvek prazno);
+   dodir ga uveća preko stola */
+@media (max-width: 640px) {
+  .last-trick {
+    left: 8%; top: 13.5%; bottom: auto; padding: 4px 6px 9px; border-radius: 10px; cursor: pointer;
+    background: rgba(8, 20, 14, .7); -webkit-tap-highlight-color: transparent;
+  }
+  .last-trick.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 4px 12px rgba(0,0,0,.35); }
+  .lt-head { font-size: .62rem; margin-bottom: 3px; letter-spacing: .02em; justify-content: center; }
+  .lt-head span { display: none; }
+  .lt-cards { gap: 2px; }
+  .lt-card { width: 21px; }
+  .lt-card .card-img { border-radius: 2px; }
+  .lt-card.win .card-img { box-shadow: 0 0 0 1.5px var(--accent); }
+  .lt-who { width: 11px; height: 11px; font-size: .45rem; bottom: -6px; }
+}
+/* položen telefon: nema mesta za prikaz — dugme */
+@media (max-height: 500px) and (orientation: landscape) {
   .last-trick { display: none; }
   .last-btn:not([hidden]) { display: block; }
-}
-/* uspravan telefon: iznad moje pločice (ne preko nje) */
-@media (max-width: 640px) {
-  .last-btn { bottom: 76px; }
-}
-@media (max-height: 500px) and (orientation: landscape) {
   .last-btn { left: auto; right: 2%; }
 }
 

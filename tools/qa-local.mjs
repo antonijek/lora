@@ -52,6 +52,7 @@ async function layoutCheck(page) {
       ...[...document.querySelectorAll('.trick .slot')].map(e => ['karta na stolu', e]),
       ...[...document.querySelectorAll('.layout .row img, .layout .ghost')].map(e => ['red u Lori', e]),
       ...[...document.querySelectorAll('#actions .pick-btn, #lastTrickBtn')].map(e => ['dugme', e]),
+      ...[...document.querySelectorAll('#lastTrickBox')].map(e => ['poslednji štih', e]),
     ].filter(([, e]) => vis(e));
     for (const p of plates) {
       const pb = r(p);

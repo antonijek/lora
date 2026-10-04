@@ -240,6 +240,7 @@ function renderLastTrick(c) {
     return;
   }
   $('lastTrickBtn').classList.toggle('on', !!peekTrick);
+  $('lastTrickBox').classList.toggle('on', !!peekTrick);
   $('lastTrickBox').innerHTML =
     `<div class="lt-head">Poslednji štih <span>odneo: <b>${esc(names[lt.winner])}</b></span></div>` +
     '<div class="lt-cards">' + lt.cards.map(pc =>
@@ -249,13 +250,16 @@ function renderLastTrick(c) {
     '</div>';
 }
 
-$('lastTrickBtn').addEventListener('click', () => {
+function togglePeek() {
   clearTimeout(peekTimer);
   const v = ctx().v;
   peekTrick = peekTrick || !v?.lastTrick ? null : v.lastTrick;
   if (peekTrick) peekTimer = setTimeout(() => { peekTrick = null; render(); }, 3000);
   render();
-});
+}
+$('lastTrickBtn').addEventListener('click', togglePeek);
+// na uspravnom telefonu je mali prikaz štiha i sam dugme
+$('lastTrickBox').addEventListener('click', () => { if (matchMedia('(max-width: 640px)').matches) togglePeek(); });
 
 function renderCenter(c, rel, showTrick) {
   const { v, names } = c;
