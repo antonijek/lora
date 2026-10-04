@@ -20,6 +20,11 @@ try {
     await page.goto(`http://localhost:${PORT}/?fast`); // ?fast: bez brojača poseta (lokalni server nema /api)
     const box = await page.locator('#startScreen').boundingBox();
     if (!box || box.width < viewport.width - 2 || box.height < viewport.height - 2) errors.push(`[${viewport.width}px] početni ekran ne prekriva ceo ekran (${JSON.stringify(box)})`);
+    // pravila moraju da se skroluju (igra zabranjuje skrolovanje — to je jednom važilo i za pravila)
+    await page.goto(`http://localhost:${PORT}/pravila.html`);
+    await page.mouse.wheel(0, 1500);
+    await page.waitForTimeout(300);
+    if ((await page.evaluate(() => scrollY)) < 200) errors.push(`[${viewport.width}px] pravila se ne skroluju`);
     await page.goto(`http://localhost:${PORT}/?fast&local`);
     await page.evaluate(() => localStorage.clear());
     await page.reload();

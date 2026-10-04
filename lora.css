@@ -626,6 +626,16 @@ dialog.final > :not(.confetti) { position: relative; z-index: 1; }
 .panel .btn.primary:hover { background: #f6cf6a; }
 .btn.big { padding: 12px 18px; font-size: 1.05rem; }
 .link { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; align-self: center; }
+/* "← Početna" / "← Nazad": dugme sa strelicom umesto podvučenog linka */
+.back-btn {
+  display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: .9rem; font-weight: 600;
+  padding: 6px 14px 6px 8px; border-radius: 999px; cursor: pointer; text-decoration: none; white-space: nowrap;
+  color: var(--ink); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.22);
+  transition: border-color .12s, background .12s, color .12s;
+}
+.back-btn:hover, .back-btn:focus-visible { border-color: var(--accent); color: var(--accent); background: rgba(242,193,78,.1); outline: none; }
+.back-btn svg { width: 17px; height: 17px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.panel > .back-btn { align-self: center; }
 .muted { color: #c3d4ca; margin: 0; }
 .small { font-size: .85rem; }
 .error { color: #ff8a8a; margin: 0; min-height: 1.2em; font-size: .9rem; }
@@ -641,7 +651,10 @@ body:not(.is-admin) .admin-only { display: none !important; }
 /* lobi */
 .panel.lobby { width: min(920px, 100%); gap: 14px; }
 .lobby-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: .92rem; }
-.lobby-top .link { align-self: auto; }
+.lobby-top .back-btn { align-self: auto; }
+/* ime · rejting · niz · Statistika · Admin · Odjava — na uskom ekranu se prelama, ne izlazi van ekrana */
+.me-box { flex-wrap: wrap; row-gap: 6px; min-width: 0; }
+.streak { white-space: nowrap; }
 .me-box { display: flex; gap: 10px; align-items: center; color: var(--muted); }
 .me-box b { color: var(--ink); }
 .me-av { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; background: #2f6fd0; color: #fff; font-weight: 800; font-size: .85rem; }

@@ -24,7 +24,9 @@
   <link rel="icon" href="./icons/favicon-32.png" sizes="32x32" type="image/png">
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
   <style>
-    body { display: block; height: auto; min-height: 100%; }
+    /* igra (lora.css) zabranjuje skrolovanje stranice — pravila moraju da se skroluju */
+    html, body { height: auto; overflow: auto; }
+    body { display: block; min-height: 100%; }
     .rules {
       max-width: 760px; margin: 24px auto; padding: 22px 26px; line-height: 1.6;
       background: linear-gradient(180deg, #11281c 0%, #0a1b13 100%);
@@ -40,7 +42,7 @@
     .rules tr:nth-child(even) td { background: rgba(255,255,255,.04); }
     .rules tr:last-child td { border-bottom: 0; }
     @media (max-width: 640px) { .rules { margin: 10px; padding: 16px; border-width: 4px; } }
-    .rules a { color: var(--accent); }
+    .rules a:not(.back-btn):not(.btn) { color: var(--accent); }
     .rules h3 { margin: 18px 0 4px; font-size: 1.02rem; }
     .rules h3 + p { margin-top: 0; }
     .play-cta { display: inline-block; margin-top: 4px; }
@@ -48,7 +50,7 @@
 </head>
 <body class="page">
   <main class="rules">
-    <p><a href="./">← Nazad na igru</a></p>
+    <p><a class="back-btn" href="./"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Nazad na igru</a></p>
     <h1>Pravila Lore</h1>
     <p>Lora (lore, lorum) je kartaška igra za 4 igrača. Svako igra za sebe. Igra se špilom od 32 karte (od sedmice do keca), a svaki igrač dobija po 8 karata. Cilj je skupiti <b>što manje poena</b>.</p>
     <p>Loru možete odmah da igrate <a href="./">online, besplatno</a> — sa prijateljima ili protiv računara, bez instaliranja.</p>

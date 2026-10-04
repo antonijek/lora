@@ -478,7 +478,7 @@ function showDealEnd() {
   if (finished) renderFinal(c, rating);
   else {
     $('dealEndTitle').textContent = CONTRACT_NAMES[last.contract];
-    $('dealSub').textContent = `Kraj partije ${last.dealIndex + 1}/28 · čija igra: ${whose(names[last.chooser])}`;
+    $('dealSub').textContent = `Odigranih: ${last.dealIndex + 1}/28 · čija igra: ${whose(names[last.chooser])}`;
   }
 
   // "Pogledaj karte": snimak ruku ove partije — ostaje isti i ako sledeća partija krene (online tajmer)
