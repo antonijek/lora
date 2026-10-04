@@ -13,6 +13,18 @@ import { initOnline } from './online.js';
 const FAST = new URLSearchParams(location.search).has('fast');
 const AI_DELAY = FAST ? 0 : 650;
 
+// Visina ekrana: posle povratka sa pravila telefon vrati stranicu iz memorije sa starom
+// visinom (karte "pobegnu" ispod ivice dok se telefon ne okrene) — zato je merimo ponovo.
+function fitHeight() {
+  document.documentElement.style.setProperty('--app-h', `${window.visualViewport?.height ?? innerHeight}px`);
+}
+fitHeight();
+addEventListener('resize', fitHeight);
+addEventListener('orientationchange', () => setTimeout(fitHeight, 300));
+addEventListener('pageshow', () => { fitHeight(); setTimeout(fitHeight, 300); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(fitHeight, 100); });
+window.visualViewport?.addEventListener('resize', fitHeight);
+
 // nasumičan id pregledača za admin statistiku (posete, mečevi protiv računara) — bez ličnih podataka
 const VISITOR = (() => {
   let vid = null;
@@ -599,7 +611,12 @@ async function renderStats() {
   const body = $('statsBody');
   if (statsTab === 'local') {
     const st = loadLocalStats();
-    body.innerHTML = statsHtml(computeStats(st.matches), streak(st.days, localDay()), null) +
+    let cur = null;
+    try { cur = game ? game.getState() : JSON.parse(localStorage.getItem(SAVE_KEY))?.state; } catch {}
+    const progress = cur && cur.phase !== 'MATCH_END' ? cur.history.length : null;
+    body.innerHTML = '<p class="stats-info">Mečevi iz <b>„Igraj protiv računara“</b>. Meč se upisuje kad se odigra svih 28 partija.' +
+      (progress !== null ? ` Meč u toku: <b>odigranih ${progress}/28</b>.` : '') + '</p>' +
+      statsHtml(computeStats(st.matches), streak(st.days, localDay()), null) +
       (storedToken() ? '' : '<p class="stats-note">Ova statistika se čuva samo na ovom uređaju. <button class="link" type="button" data-signup>Napravi besplatan nalog</button> i igraj i sa pravim ljudima.</p>');
     return;
   }
@@ -610,13 +627,13 @@ async function renderStats() {
     const r = await fetch('api/stats', { headers: { Authorization: `Bearer ${token}` } });
     if (!r.ok) throw new Error();
     const d = await r.json();
-    if (statsTab === 'online') body.innerHTML = statsHtml(d.stats, d.streak, d);
+    if (statsTab === 'online') body.innerHTML = '<p class="stats-info">Mečevi u <b>online sobama</b> — i sa pravim ljudima i sa AI igračima. Meč se upisuje kad se odigra svih 28 partija.</p>' + statsHtml(d.stats, d.streak, d);
   } catch {
     body.innerHTML = '<p class="stats-empty">Statistika trenutno nije dostupna.</p>';
   }
 }
 function statsHtml(s, str, online) {
-  if (!s.matches) return '<p class="stats-empty">Još nema završenih mečeva. Odigraj prvi i ovde će se pojaviti tvoji rekordi.</p>';
+  if (!s.matches) return '<p class="stats-empty">Još nema završenih mečeva. Kad odigraš ceo meč (28 partija), ovde će se pojaviti tvoji rekordi.</p>';
   const tile = (num, lbl, cls = '') => `<div class="stat-tile ${cls}"><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
   const dt = d => (d ? new Date(d.slice(0, 10) + 'T12:00:00').toLocaleDateString('sr-RS', { day: 'numeric', month: 'numeric', year: '2-digit' }) : '');
   const tiles = [

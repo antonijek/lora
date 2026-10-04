@@ -31,7 +31,8 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--ink);
   background: radial-gradient(ellipse at 50% 40%, var(--room-2), var(--room) 70%);
-  height: 100dvh; overflow: hidden;
+  /* --app-h meri app.js (resize, povratak sa druge stranice); 100dvh je rezerva */
+  height: var(--app-h, 100dvh); overflow: hidden;
   /* minmax(0, 1fr): bez ovoga se kolona širi prema najdužem tekstu, pa i sto */
   display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr);
   -webkit-tap-highlight-color: transparent;
@@ -405,6 +406,8 @@ dialog.final > :not(.confetti) { position: relative; z-index: 1; }
 .nudge-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 .stats-note { margin: 12px 0 0; font-size: .85rem; color: var(--muted); }
 .stats-note .link { font-size: inherit; }
+.stats-info { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,.05); font-size: .85rem; color: #c3d4ca; line-height: 1.4; }
+.stats-info b { color: var(--ink); }
 
 /* moja statistika */
 .stats-dialog { width: min(560px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; }
