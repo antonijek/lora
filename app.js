@@ -588,46 +588,96 @@ function markLocalDay() {
 function recordLocalMatch(v) {
   const st = loadLocalStats();
   if (st.last?.id === localMatchId) return st.last.records;
-  const rec = { date: localDay(), scores: [...v.scores], seat: 0, history: v.history };
-  const records = newRecords(computeStats(st.matches), rec);
+  const rec = { id: `m${localMatchId}`, date: localDay(), scores: [...v.scores], seat: 0, history: v.history };
+  // prijavljen: rekordi se računaju na serveru iz SVIH mečeva (online + protiv računara) — stižu posle slanja
+  const records = storedToken() ? [] : newRecords(computeStats(st.matches), rec);
   st.matches.push(rec);
   st.days.push(localDay());
   st.last = { id: localMatchId, records };
   saveLocalStats(st);
   track('local_finish');
+  if (storedToken()) {
+    syncLocalMatches().then(res => {
+      if (!res?.records?.length) return;
+      st.last.records = res.records;
+      const cur = loadLocalStats();
+      if (cur.last?.id === localMatchId) { cur.last.records = res.records; saveLocalStats(cur); }
+      if ($('dealEnd').open && $('dealEnd').classList.contains('final')) {
+        $('dealRecords').hidden = false;
+        $('dealRecords').innerHTML = `<b>🏆 Novi lični rekord!</b><ul>${res.records.map(r => `<li>${esc(r)}</li>`).join('')}</ul>`;
+      }
+    });
+  }
   return records;
 }
 
 const storedToken = () => { try { return localStorage.getItem('lora_token'); } catch { return null; } };
 
-let statsTab = 'local';
-function openStats(tab) {
-  statsTab = tab ?? (storedToken() && (mode === 'online' || lastMode() === 'online') ? 'online' : 'local');
+/** Kratak stabilan id za stare zapise bez id-a (da server ne upiše isti meč dvaput). */
+function matchId(m) {
+  const str = JSON.stringify([m.date, m.scores, m.history.map(h => [h.contract, h.points])]);
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+  return `h${h.toString(36)}${str.length.toString(36)}`;
+}
+
+/**
+ * Pošalji na nalog mečeve protiv računara koji još nisu poslati (pri prijavi svi raniji,
+ * posle svaki novi). Server ih računa u ličnu statistiku, nikad u rejting.
+ */
+let syncing = null;
+function syncLocalMatches() {
+  const token = storedToken();
+  if (!token || FAST) return Promise.resolve(null);
+  if (syncing) return syncing;
+  const st = loadLocalStats();
+  const todo = st.matches.filter(m => !m.synced && m.history?.length === 28);
+  if (!todo.length) return Promise.resolve(null);
+  for (const m of todo) m.id ??= matchId(m);
+  saveLocalStats(st);
+  syncing = fetch('api/local-matches', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ matches: todo.map(({ id, date, seat, scores, history }) => ({ id, date, seat, scores, history })) }),
+  }).then(r => (r.ok ? r.json() : null)).then(res => {
+    if (res?.accepted) {
+      const fresh = loadLocalStats();
+      for (const m of fresh.matches) if (res.accepted.includes(m.id)) m.synced = true;
+      saveLocalStats(fresh);
+    }
+    return res;
+  }).catch(() => null).finally(() => { syncing = null; });
+  return syncing;
+}
+
+/** Prijavljen: jedna statistika sa servera (online + protiv računara). Bez naloga: samo ovaj uređaj. */
+function openStats() {
   if (!$('statsDlg').open) $('statsDlg').showModal();
   renderStats();
 }
 async function renderStats() {
-  for (const b of $('statsTabs').children) b.classList.toggle('on', b.dataset.t === statsTab);
   const body = $('statsBody');
-  if (statsTab === 'local') {
+  let cur = null;
+  try { cur = game ? game.getState() : JSON.parse(localStorage.getItem(SAVE_KEY))?.state; } catch {}
+  const progress = cur && cur.phase !== 'MATCH_END' && cur.history.length ? cur.history.length : null;
+  const inProgress = progress !== null ? ` Meč protiv računara u toku: <b>odigranih ${progress}/28</b>.` : '';
+  const token = storedToken();
+  if (!token) {
     const st = loadLocalStats();
-    let cur = null;
-    try { cur = game ? game.getState() : JSON.parse(localStorage.getItem(SAVE_KEY))?.state; } catch {}
-    const progress = cur && cur.phase !== 'MATCH_END' ? cur.history.length : null;
-    body.innerHTML = '<p class="stats-info">Mečevi iz <b>„Igraj protiv računara“</b>. Meč se upisuje kad se odigra svih 28 partija.' +
-      (progress !== null ? ` Meč u toku: <b>odigranih ${progress}/28</b>.` : '') + '</p>' +
+    body.innerHTML = `<p class="stats-info">Meč se upisuje kad se odigra svih 28 partija.${inProgress}</p>` +
       statsHtml(computeStats(st.matches), streak(st.days, localDay()), null) +
-      (storedToken() ? '' : '<p class="stats-note">Ova statistika se čuva samo na ovom uređaju. <button class="link" type="button" data-signup>Napravi besplatan nalog</button> i igraj i sa pravim ljudima.</p>');
+      '<p class="stats-note">Ova statistika se čuva samo na ovom uređaju. <button class="link" type="button" data-signup>Napravi besplatan nalog</button>: statistika ti se čuva na svim uređajima, a možeš igrati i sa pravim ljudima.</p>';
     return;
   }
-  const token = storedToken();
-  if (!token) { body.innerHTML = '<p class="stats-empty">Prijavite se za online statistiku (Igraj online).</p>'; return; }
   body.innerHTML = '<p class="stats-empty">Učitavam…</p>';
   try {
+    await syncLocalMatches(); // da se vidi i poslednji meč protiv računara
     const r = await fetch('api/stats', { headers: { Authorization: `Bearer ${token}` } });
     if (!r.ok) throw new Error();
     const d = await r.json();
-    if (statsTab === 'online') body.innerHTML = '<p class="stats-info">Mečevi u <b>online sobama</b> — i sa pravim ljudima i sa AI igračima. Meč se upisuje kad se odigra svih 28 partija.</p>' + statsHtml(d.stats, d.streak, d);
+    const split = d.stats.matches ? ` Od toga <b>${d.vsComputer}</b> protiv računara i <b>${d.withPeople}</b> sa ljudima.` : '';
+    body.innerHTML = `<p class="stats-info">Svi tvoji mečevi — online i protiv računara.${split} Meč se upisuje kad se odigra svih 28 partija.${inProgress}</p>` +
+      statsHtml(d.stats, d.streak, d);
   } catch {
     body.innerHTML = '<p class="stats-empty">Statistika trenutno nije dostupna.</p>';
   }
@@ -641,7 +691,7 @@ function statsHtml(s, str, online) {
     tile(`${s.wins} <small class="pct">${Math.round((s.wins / s.matches) * 100)}%</small>`, 'pobeda'),
     tile(s.bestMatch.points, 'najbolji meč (poena)'),
     tile(s.avgScore, 'prosečno poena'),
-    online ? tile(online.rating, `rejting · najviši ${online.bestRating}`) : '',
+    online ? tile(online.rating, `rejting · najviši ${online.bestRating}<br>samo mečevi sa bar 2 čoveka`) : '',
     tile(`🔥 ${str.current}`, `dana zaredom · najduže ${str.best}`, 'fire'),
   ].join('');
   const rows = DEFAULT_CONTRACTS.filter(k => s.bestDeal[k]).map(k =>
@@ -651,12 +701,6 @@ function statsHtml(s, str, online) {
     <table class="result"><thead><tr><th>Igra</th><th>Poena</th><th>Kad</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-$('statsTabs').addEventListener('click', e => {
-  const t = e.target.closest('button[data-t]')?.dataset.t;
-  if (!t) return;
-  statsTab = t;
-  renderStats();
-});
 $('closeStatsBtn').addEventListener('click', () => $('statsDlg').close());
 $('statsBody').addEventListener('click', e => {
   if (!e.target.closest('[data-signup]')) return;
@@ -667,7 +711,7 @@ $('statsBody').addEventListener('click', e => {
 });
 $('statsMenuBtn').addEventListener('click', () => { $('menu').close(); openStats(); });
 $('startStatsBtn').addEventListener('click', () => openStats());
-$('lobbyStatsBtn').addEventListener('click', () => openStats('online'));
+$('lobbyStatsBtn').addEventListener('click', () => openStats());
 
 let revealedSnap = null;
 function showRevealed() {
@@ -900,12 +944,16 @@ online = initOnline({
   toast,
   ask,
   notify,
+  onLogin: () => syncLocalMatches(),
   goHome,
   showScreen,
 });
 
 // brojač posetilaca za admin statistiku
 if (!FAST) fetch('api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ v: VISITOR }) }).catch(() => {});
+
+// prijavljen: raniji mečevi protiv računara sa ovog uređaja idu na nalog (jednom)
+syncLocalMatches();
 
 // admin prečica (ikonica u zaglavlju, lobiju i na početnom ekranu) — samo za admin nalog
 try {

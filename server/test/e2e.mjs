@@ -220,6 +220,21 @@ try {
   check(Array.isArray(r.records) && r.records.every(x => x.length === 0), 'prvi meč nema "novi rekord"');
   check((await api('/api/stats')).status === 401, 'statistika bez prijave → 401');
 
+  // --- mečevi "Igraj protiv računara" na nalogu: spojena statistika, rejting se ne menja
+  const ratingBefore = st.data.rating;
+  const K = ['MAX', 'MIN', 'HERC', 'DAME', 'ZANDAR', 'KRALJ_ZADNJI', 'LORA'];
+  const fakeHist = pts => Array.from({ length: 28 }, (_, i) => ({ dealIndex: i, dealer: i % 4, chooser: (i + 1) % 4, contract: K[i % 7], points: i === 0 ? [pts, 1, 1, 1] : [0, 1, 1, 1] }));
+  const lm = (id, date, my) => ({ id, date, seat: 0, scores: [my, 40, 50, 60], history: fakeHist(my) });
+  const up1 = await api('/api/local-matches', { matches: [lm('mtest1', '2026-09-01', 30), lm('mtest2', '2026-09-02', -5)] }, ra.data.token);
+  check(up1.status === 200 && up1.data.saved === 2, `mečevi protiv računara primljeni (${up1.status}, ${up1.data.saved})`);
+  const up2 = await api('/api/local-matches', { matches: [lm('mtest2', '2026-09-02', -5), { id: 'los', date: 'x', seat: 9, scores: [], history: [] }] }, ra.data.token);
+  check(up2.data.saved === 0 && up2.data.accepted.length === 1, 'isti meč se ne upisuje dvaput, neispravan se odbija');
+  check((await api('/api/local-matches', { matches: [] })).status === 401, 'slanje mečeva bez prijave → 401');
+  const st2 = (await api('/api/stats', null, ra.data.token)).data;
+  check(st2.stats.matches === 3 && st2.vsComputer === 2 && st2.withPeople === 1, `spojena statistika: 3 meča, 2 protiv računara, 1 sa ljudima (${st2.stats.matches}, ${st2.vsComputer}, ${st2.withPeople})`);
+  check(st2.rating === ratingBefore, 'mečevi protiv računara ne menjaju rejting');
+  check(st2.stats.bestMatch.points === Math.min(-5, st.data.stats.bestMatch.points), 'najbolji meč uzima u obzir i mečeve protiv računara');
+
   // --- veza pukla baš na kraju (telefon zaključan, F5): po povratku rezultat, ne prazan lobi
   players[0].close();
   await wait(300);

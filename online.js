@@ -57,6 +57,7 @@ export function initOnline(hooks) {
       if (!data.token) { $('loginError').textContent = data.error || 'Greška pri prijavi.'; return; }
       token = data.token;
       try { localStorage.setItem(TOKEN_KEY, token); } catch {}
+      hooks.onLogin?.();
       connect();
     } catch {
       $('loginError').textContent = 'Ne mogu da se povežem sa serverom.';

@@ -4,11 +4,12 @@ import path from 'node:path';
 import express from 'express';
 import compression from 'compression';
 import { Server as SocketIOServer } from 'socket.io';
-import { initDb, flushPersist, topPlayers, matchesForUser, recordVisit, recordEvent, EVENT_KINDS, userMatchRecords, userDays, getRating } from './db.js';
-import { computeStats, streak } from '../../engine/dist/stats.js';
+import { initDb, flushPersist, topPlayers, matchesForUser, recordVisit, recordEvent, EVENT_KINDS, userMatchRecords, allUserRecords, saveLocalMatch, upsertPlayer, userDays, getRating } from './db.js';
+import { computeStats, streak, newRecords } from '../../engine/dist/stats.js';
+import { DEFAULT_CONTRACTS } from '../../engine/dist/contracts.js';
 import { adminRouter } from './admin.js';
 import { seoRouter } from './seo.js';
-import { authRouter, verifyToken } from './auth.js';
+import { authRouter, verifyToken, fetchMe } from './auth.js';
 import { registerSocketHandlers } from './socket/index.js';
 import { loadPersistedRooms, removeAbandonedRooms, allRooms, status } from './rooms/Room.js';
 import { setIo, broadcast } from './rooms/driver.js';
@@ -67,18 +68,56 @@ async function main(): Promise<void> {
     } catch {
       return void res.status(401).json({ error: 'Niste prijavljeni.' });
     }
-    const records = userMatchRecords(userId);
+    // jedna statistika: online sobe + "Igraj protiv računara"; rejting samo iz rangiranih (≥2 čoveka)
+    const records = allUserRecords(userId);
     const rating = getRating(userId);
     let r = 1000;
     let bestRating = rating;
-    for (const m of records) if (m.rated) { r += m.delta; bestRating = Math.max(bestRating, r); }
+    for (const m of userMatchRecords(userId)) if (m.rated) { r += m.delta; bestRating = Math.max(bestRating, r); }
     res.json({
       stats: computeStats(records),
       streak: streak(userDays(userId), new Date().toISOString().slice(0, 10)),
       rating,
       bestRating,
       ratedMatches: records.filter(m => m.rated).length,
+      vsComputer: records.filter(m => m.humans < 2).length,
+      withPeople: records.filter(m => m.humans >= 2).length,
     });
+  });
+  // Mečevi "Igraj protiv računara" iz pregledača prijavljenog igrača (pri prijavi svi raniji,
+  // posle svaki novi). Vraća nove lične rekorde za poslednji meč iz paketa.
+  app.post('/api/local-matches', async (req, res) => {
+    const token = String(req.headers.authorization ?? '').replace(/^Bearer /, '');
+    let me;
+    try {
+      const { userId } = verifyToken(token);
+      me = await fetchMe(token);
+      if (!me || me.id !== userId) throw new Error('auth');
+    } catch {
+      return void res.status(401).json({ error: 'Niste prijavljeni.' });
+    }
+    const list = Array.isArray(req.body?.matches) ? req.body.matches.slice(0, 300) : [];
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const valid = list.filter((m: any) =>
+      typeof m?.id === 'string' && /^[\w-]{4,40}$/.test(m.id) &&
+      typeof m.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.date) && m.date <= tomorrow &&
+      Number.isInteger(m.seat) && m.seat >= 0 && m.seat <= 3 &&
+      Array.isArray(m.scores) && m.scores.length === 4 && m.scores.every((x: unknown) => Number.isInteger(x) && Math.abs(x as number) < 1000) &&
+      Array.isArray(m.history) && m.history.length === 28 && m.history.every((h: any) =>
+        (DEFAULT_CONTRACTS as readonly string[]).includes(h?.contract) && Array.isArray(h.points) && h.points.length === 4 && h.points.every(Number.isInteger)),
+    ).sort((a: any, b: any) => a.date.localeCompare(b.date));
+    upsertPlayer(me.id, String(me.name || `igrač-${me.id}`).slice(0, 40));
+    let saved = 0;
+    let records: string[] = [];
+    valid.forEach((m: any, i: number) => {
+      const last = i === valid.length - 1;
+      const before = last ? computeStats(allUserRecords(me!.id)) : null;
+      if (saveLocalMatch(me!.id, m)) {
+        saved++;
+        if (before) records = newRecords(before, m);
+      }
+    });
+    res.json({ ok: true, saved, accepted: valid.map((m: any) => m.id), records });
   });
   app.get('/api/matches', (req, res) => {
     try {

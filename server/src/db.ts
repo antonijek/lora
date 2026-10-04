@@ -62,6 +62,19 @@ export async function initDb(): Promise<void> {
     n INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY (day, visitor, kind)
   )`);
+  // Mečevi "Igraj protiv računara" prijavljenih igrača (igra ih šalje iz pregledača) —
+  // samo za ličnu statistiku, NIKAD za rejting. client_id: da se isti meč ne upiše dvaput.
+  db.run(`CREATE TABLE IF NOT EXISTS local_matches (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    client_id TEXT NOT NULL,
+    day TEXT NOT NULL,
+    seat INTEGER NOT NULL,
+    scores_json TEXT NOT NULL,
+    history_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (user_id, client_id)
+  )`);
   const cols = all<{ name: string }>('PRAGMA table_info(lora_players)').map(c => c.name);
   if (!cols.includes('last_seen_at')) db.run('ALTER TABLE lora_players ADD COLUMN last_seen_at TEXT');
   // pregledač iz kog je igrač prvi put ušao online (da se vidi ko je pre naloga igrao protiv računara)
@@ -234,18 +247,23 @@ export function recomputeRatings(deltasFor: (scores: number[], ratings: number[]
 
 // ---------- lična statistika ----------
 
-/** Svi mečevi igrača (i oni koje je napustio — AI je igrao za njega) iz njegovog ugla, najstariji prvi. */
-export function userMatchRecords(userId: number): (MatchRecord & { rated: boolean; delta: number })[] {
+export type UserRecord = MatchRecord & { rated: boolean; delta: number; humans: number; local: boolean };
+
+/** Svi online mečevi igrača (i oni koje je napustio — AI je igrao za njega) iz njegovog ugla, najstariji prvi. */
+export function userMatchRecords(userId: number): UserRecord[] {
   const rows = all<{ ended_at: string; rated: number; seats_json: string; scores_json: string; rating_deltas_json: string; history_json: string }>(
     `SELECT ended_at, rated, seats_json, scores_json, rating_deltas_json, history_json
      FROM match_log WHERE seats_json LIKE ? ORDER BY id`,
     [`%"userId":${userId},%`],
   );
-  const out: (MatchRecord & { rated: boolean; delta: number })[] = [];
+  const out: UserRecord[] = [];
   for (const r of rows) {
-    const seat = (JSON.parse(r.seats_json) as { userId: number | null }[]).findIndex(s => s.userId === userId);
+    const seats = JSON.parse(r.seats_json) as { userId: number | null }[];
+    const seat = seats.findIndex(s => s.userId === userId);
     if (seat < 0) continue;
     out.push({
+      humans: seats.filter(s => s.userId !== null).length,
+      local: false,
       date: r.ended_at,
       scores: JSON.parse(r.scores_json),
       seat: seat as Position,
@@ -255,6 +273,30 @@ export function userMatchRecords(userId: number): (MatchRecord & { rated: boolea
     });
   }
   return out;
+}
+
+/** Mečevi protiv računara (iz pregledača) — isti oblik kao online, bez rejtinga. */
+export function userLocalRecords(userId: number): UserRecord[] {
+  return all<{ day: string; seat: number; scores_json: string; history_json: string }>(
+    'SELECT day, seat, scores_json, history_json FROM local_matches WHERE user_id = ? ORDER BY day, id', [userId],
+  ).map(r => ({
+    date: r.day, seat: r.seat as Position, scores: JSON.parse(r.scores_json), history: JSON.parse(r.history_json),
+    rated: false, delta: 0, humans: 1, local: true,
+  }));
+}
+
+/** Sva lična statistika: online + protiv računara, po datumu. */
+export function allUserRecords(userId: number): UserRecord[] {
+  return [...userMatchRecords(userId), ...userLocalRecords(userId)].sort((a, b) => a.date.slice(0, 10).localeCompare(b.date.slice(0, 10)));
+}
+
+/** Upiši meč protiv računara; false ako je već upisan (isti client_id). Računa se i dan za niz dana. */
+export function saveLocalMatch(userId: number, m: { id: string; date: string; seat: number; scores: number[]; history: unknown[] }): boolean {
+  if (get('SELECT id FROM local_matches WHERE user_id = ? AND client_id = ?', [userId, m.id])) return false;
+  run('INSERT INTO local_matches (user_id, client_id, day, seat, scores_json, history_json) VALUES (?, ?, ?, ?, ?, ?)',
+    [userId, m.id, m.date, m.seat, JSON.stringify(m.scores), JSON.stringify(m.history)]);
+  run('INSERT OR IGNORE INTO player_days (user_id, day) VALUES (?, ?)', [userId, m.date]);
+  return true;
 }
 
 export function userDays(userId: number): string[] {
