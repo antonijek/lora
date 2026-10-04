@@ -568,7 +568,6 @@ dialog.final > :not(.confetti) { position: relative; z-index: 1; }
   .final-list li { padding: 5px 10px; }
   .final-note { margin-top: 8px; }
 }
-}
 
 /* ===================== ekrani van stola (start, prijava, lobi, čekaonica) ===================== */
 .screen {
