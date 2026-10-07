@@ -15,6 +15,7 @@ import {
 } from './rooms/Room.js';
 import { broadcast, getIo, isPaused, ratingDeltas } from './rooms/driver.js';
 import { listOnlineUsers, getSocketIdsForUser } from './presence.js';
+import { visitsReport } from './visits.js';
 
 const AUTH_URL = () => process.env.AUTH_URL || 'http://127.0.0.1:3001';
 
@@ -184,6 +185,7 @@ adminRouter.use(requireAdmin);
 const intParam = (v: unknown) => (Number.isInteger(Number(v)) ? Number(v) : null);
 
 adminRouter.get('/stats', (_req, res) => res.json(stats()));
+adminRouter.get('/visits', (_req, res) => res.json(visitsReport()));
 
 adminRouter.get('/online', (_req, res) => {
   const users = listOnlineUsers().map(u => {

@@ -13,6 +13,7 @@ export const INDEXNOW_KEY = '79033a1f38f6216677370c7b7e06b7db';
 const PAGES = [
   { loc: '/', file: 'lora.html', changefreq: 'weekly', priority: '1.0' },
   { loc: '/pravila.html', file: 'pravila.html', changefreq: 'monthly', priority: '0.8' },
+  { loc: '/privatnost.html', file: 'privatnost.html', changefreq: 'yearly', priority: '0.2' },
 ];
 
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);

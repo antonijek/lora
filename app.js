@@ -950,7 +950,19 @@ online = initOnline({
 });
 
 // brojač posetilaca za admin statistiku
-if (!FAST) fetch('api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ v: VISITOR }) }).catch(() => {});
+// odakle je posetilac došao (Google, Facebook, link sobe…) i sa kog uređaja — anonimno, za admin "Posete"
+function sendVisit(page) {
+  const params = new URLSearchParams(location.search);
+  let ref = '';
+  try { if (document.referrer && new URL(document.referrer).host !== location.host) ref = document.referrer; } catch {}
+  const body = {
+    v: VISITOR, page, ref,
+    src: params.get('utm_source') || (params.has('room') ? 'room' : ''),
+    app: matchMedia('(display-mode: standalone)').matches,
+  };
+  fetch('api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => {});
+}
+if (!FAST) sendVisit('igra');
 
 // prijavljen: raniji mečevi protiv računara sa ovog uređaja idu na nalog (jednom)
 syncLocalMatches();

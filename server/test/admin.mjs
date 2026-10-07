@@ -81,6 +81,14 @@ try {
   await api('/api/visit', { v: 'posetilac01' }); // isti dan, isti posetilac → jednom
   await api('/api/visit', { v: 'posetilac02' });
   await api('/api/visit', { v: 'LOŠ id!' });
+  // izvori poseta (bez IP adrese): Google, link sobe, direktno; isti pregledač u 30 min = jedan dolazak
+  const visit = (body, ua) => fetch(`http://127.0.0.1:${LORA_PORT}/api/visit`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': ua }, body: JSON.stringify(body) });
+  const PHONE = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36';
+  const PC = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36';
+  await visit({ v: 'posetilac03', ref: 'https://www.google.rs/', page: 'pravila' }, PHONE);
+  await visit({ v: 'posetilac03', ref: 'https://www.google.rs/', page: 'igra' }, PHONE);
+  await visit({ v: 'posetilac04', src: 'room', page: 'igra', app: true }, PHONE);
+  await visit({ v: 'posetilac05', ref: 'https://l.facebook.com/x', page: 'igra' }, PC);
   // posetilac01 igra protiv računara (2 meča počeo, 1 završio), klikne "Napravi nalog" i uđe online kao Ana
   await api('/api/event', { v: 'posetilac01', kind: 'local_start' });
   await api('/api/event', { v: 'posetilac01', kind: 'local_start' });
@@ -94,14 +102,21 @@ try {
   ana.on('game:error', m => ana.errors.push(m));
   await until(() => ana.connected, 5000, 'Ana povezana');
   const st1 = (await api('/api/admin/stats', null, adminTok)).data;
-  check(st1.visitorsToday === 2, `posetioci danas = 2 (${st1.visitorsToday})`);
+  check(st1.visitorsToday === 5, `posetioci danas = 5 (${st1.visitorsToday})`);
   check(st1.activeToday === 1 && st1.onlineNow === 1 && st1.totalPlayers === 1, `aktivni/online/ukupno = 1 (${st1.activeToday}/${st1.onlineNow}/${st1.totalPlayers})`);
-  check(st1.daily.at(-1).visitors === 2 && st1.daily.at(-1).active === 1, 'današnji dan u grafikonu');
+  check(st1.daily.at(-1).visitors === 5 && st1.daily.at(-1).active === 1, 'današnji dan u grafikonu');
   check(st1.localStartedToday === 2 && st1.localFinished7 === 1 && st1.daily.at(-1).localMatches === 2, `mečevi protiv računara (${st1.localStartedToday}, ${st1.localFinished7})`);
   const f = st1.funnel;
-  check(f.visitors === 2 && f.playedLocal === 1 && f.finishedLocal === 1 && f.signupClicks === 1 && f.newOnline === 1 && f.fromLocal === 1,
+  check(f.visitors === 5 && f.playedLocal === 1 && f.finishedLocal === 1 && f.signupClicks === 1 && f.newOnline === 1 && f.fromLocal === 1,
     `put do naloga ${JSON.stringify(f)}`);
 
+  const vis = (await api('/api/admin/visits', null, adminTok)).data;
+  const src = Object.fromEntries(vis.bySource.map(r => [r.k, r.c]));
+  check(src.Google === 1 && src['Link sobe'] === 1 && src.Facebook === 1 && src.Direktno === 2, `izvori poseta ${JSON.stringify(src)}`);
+  check(vis.today === 5, `isti pregledač u 30 min = jedan dolazak (${vis.today})`); // 01 (dvaput), 02, 03 (pravila pa igra), 04, 05
+  check(vis.byDevice.some(r => r.k === 'telefon (aplikacija)') && vis.byDevice.some(r => r.k === 'računar'), `uređaji ${JSON.stringify(vis.byDevice)}`);
+  check(!JSON.stringify(vis).includes('127.0.0.1') && vis.recent.every(r => r.who.length === 4), 'posete bez IP adrese i punog id-a');
+  check((await api('/api/admin/visits', null, anaTok)).status === 403, 'posete samo za admina');
   const pl = (await api('/api/admin/players', null, adminTok)).data.players;
   check(pl.length === 1 && pl[0].name === 'Ana' && pl[0].email === 'ana@test.rs' && pl[0].online && !pl[0].banned, 'spisak igrača sa emailom iz preferansa');
   const rr = await api(`/api/admin/players/${pl[0].user_id}/rating`, { rating: 1234 }, adminTok);

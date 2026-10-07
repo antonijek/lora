@@ -442,6 +442,8 @@ dialog.final > :not(.confetti) { position: relative; z-index: 1; }
 .feat-ic svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .feat div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .feat b { color: var(--ink); font-size: .98rem; }
+.privacy-link { align-self: center; font-size: .78rem; color: #9fb3a7; text-decoration: none; }
+.privacy-link:hover { text-decoration: underline; color: var(--accent); }
 .feat span { color: #c3d4ca; font-size: .84rem; line-height: 1.35; }
 .hero-links { display: flex; justify-content: center; gap: 18px; }
 .streak { font-size: .8rem; font-weight: 700; color: var(--accent); }

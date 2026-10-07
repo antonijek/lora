@@ -72,6 +72,15 @@
   .fnum { grid-area: num; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
   .flbl { grid-area: lbl; font-size: .82rem; color: var(--muted); }
   /* sobe */
+  .vgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .bars { display: flex; flex-direction: column; gap: 7px; }
+  .bar { display: grid; grid-template-columns: minmax(90px, 140px) 1fr auto; align-items: center; gap: 10px; font-size: .88rem; }
+  .bl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bt { height: 10px; border-radius: 5px; background: var(--grid); overflow: hidden; }
+  .bt b { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
+  .bn { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 3.5em; text-align: right; }
+  .bn i { font-style: normal; font-weight: 400; color: var(--muted); font-size: .8rem; }
+  @media (max-width: 760px) { .vgrid { grid-template-columns: 1fr; } }
   .rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
   .room { background: var(--surface); border: 1px solid var(--edge); border-radius: 12px; padding: 14px; }
   .room-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
@@ -146,6 +155,7 @@
       <button data-tab="igraci">Igrači</button>
       <button data-tab="sobe">Sobe</button>
       <button data-tab="partije">Mečevi</button>
+      <button data-tab="posete">Posete</button>
     </div>
 
     <!-- PREGLED -->
@@ -206,6 +216,23 @@
     </section>
 
     <!-- MEČEVI -->
+    <section class="panel" data-tab="posete">
+      <div class="tiles" id="tilesVisits"></div>
+      <div class="vgrid">
+        <div class="card"><h2>Odakle dolaze <span class="muted" style="font-weight:400;font-size:.85rem">30 dana, posetilaca</span></h2><div id="bySource" class="bars"></div></div>
+        <div class="card"><h2>Uređaji <span class="muted" style="font-weight:400;font-size:.85rem">30 dana</span></h2><div id="byDevice" class="bars"></div>
+          <h2 style="margin-top:16px">Stranice</h2><div id="byPage" class="bars"></div></div>
+      </div>
+      <div class="card">
+        <h2>Poslednje posete <span class="right"><button class="refresh">Osveži</button></span></h2>
+        <div class="scroll"><table class="visits-table">
+          <thead><tr><th>Vreme</th><th>Odakle</th><th>Uređaj</th><th>Stranica</th><th>Igrao</th><th>Nalog</th></tr></thead>
+          <tbody id="visits"></tbody>
+        </table></div>
+        <p class="muted" style="font-size:.8rem">Anonimno: bez IP adrese i imena. „Direktno“ = ukucana adresa, sačuvan link ili link iz aplikacije koja ne javlja izvor (Viber, WhatsApp). Oznaka u sivom (npr. k3x9) je ista za isti pregledač.</p>
+      </div>
+    </section>
+
     <section class="panel" data-tab="partije">
       <div class="card">
         <h2>Završeni mečevi <span class="right"><button class="refresh">Osveži</button></span></h2>
@@ -296,7 +323,7 @@ async function start() {
 // ---------------------------------------------------------------- kartice
 
 let tab = 'pregled';
-const loaders = { pregled: () => { loadStats(); loadOnline(); }, igraci: loadPlayers, sobe: loadRooms, partije: loadMatches };
+const loaders = { pregled: () => { loadStats(); loadOnline(); }, igraci: loadPlayers, sobe: loadRooms, partije: loadMatches, posete: loadVisits };
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
   tab = b.dataset.tab;
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
@@ -508,6 +535,29 @@ function seatsWithScores(m) {
   const best = Math.min(...scores);
   return seats.map((s, i) => ({ ...s, score: scores[i], delta: deltas[i], win: scores[i] === best }));
 }
+// ---------------------------------------------------------------- posete
+
+function bars(rows, total) {
+  if (!rows.length) return '<p class="empty">Još nema poseta.</p>';
+  const max = Math.max(...rows.map(r => r.c));
+  return rows.map(r => `<div class="bar"><span class="bl">${esc(r.k)}</span><span class="bt"><b style="width:${Math.max(3, r.c / max * 100)}%"></b></span><span class="bn">${r.c}${total ? ` <i>${Math.round(r.c / total * 100)}%</i>` : ''}</span></div>`).join('');
+}
+async function loadVisits() {
+  const d = await api('admin/visits');
+  $('tilesVisits').innerHTML = tile(d.uniqueToday, 'posetilaca danas') + tile(d.today, 'dolazaka danas') + tile(d.unique7, 'posetilaca za 7 dana') + tile(d.unique30, 'posetilaca za 30 dana');
+  $('bySource').innerHTML = bars(d.bySource, d.unique30);
+  $('byDevice').innerHTML = bars(d.byDevice, d.unique30);
+  $('byPage').innerHTML = bars(d.byPage.map(r => ({ ...r, k: r.k === 'igra' ? 'igra (početna)' : r.k })), 0);
+  $('visits').innerHTML = d.recent.length ? d.recent.map(v => {
+    const played = v.localStarted ? `${v.localStarted} počeo${v.localFinished ? `, ${v.localFinished} završio` : ''}` : '<span class="muted">—</span>';
+    return `<tr><td title="${esc(fmtDate(v.ts))}">${ago(v.ts)}</td>` +
+      `<td><b>${esc(v.source)}</b></td>` +
+      `<td>${esc(v.device)} <span class="muted">· ${esc(v.browser)} · ${esc(v.os)}</span></td>` +
+      `<td>${esc(v.page)}</td><td>${played}</td>` +
+      `<td>${v.account ? `<span class="pill on">${esc(v.account)}</span>` : `<span class="muted">${esc(v.who)}…${v.returning ? ' · vraća se' : ''}</span>`}</td></tr>`;
+  }).join('') : '<tr><td colspan="6" class="empty">Još nema poseta.</td></tr>';
+}
+
 async function loadMatches() {
   const { matches } = await api('admin/matches?limit=200');
   $('matches').innerHTML = matches.length ? matches.map(m => {

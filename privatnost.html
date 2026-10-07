@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privatnost — Lora online</title>
+  <meta name="description" content="Šta Lora online beleži: anonimne posete bez IP adrese i kolačića, a uz nalog ime, email, rejting i statistiku mečeva.">
+  <link rel="canonical" href="https://lora.igrajmo.online/privatnost.html">
+  <meta name="theme-color" content="#0d1f17">
+  <link rel="stylesheet" href="./lora.css">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="icon" href="./icons/favicon-32.png" sizes="32x32" type="image/png">
+  <style>
+    /* igra (lora.css) zabranjuje skrolovanje stranice — pravila moraju da se skroluju */
+    html, body { height: auto; overflow: auto; }
+    body { display: block; min-height: 100%; }
+    .rules {
+      max-width: 760px; margin: 24px auto; padding: 22px 26px; line-height: 1.6;
+      background: linear-gradient(180deg, #11281c 0%, #0a1b13 100%);
+      border: 6px solid var(--rail); border-radius: 20px;
+      box-shadow: 0 0 0 2px var(--rail-dark), 0 24px 60px rgba(0,0,0,.5);
+    }
+    .rules h1 { color: var(--accent); margin-top: 8px; }
+    .rules h2 { color: var(--accent); font-size: 1.25rem; margin: 26px 0 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.14); }
+    .rules p, .rules li { color: #e2ebe5; }
+    .rules table { border-collapse: separate; border-spacing: 0; margin: 8px 0 16px; width: 100%; border: 1px solid rgba(255,255,255,.18); border-radius: 12px; overflow: hidden; }
+    .rules th, .rules td { padding: 8px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .rules th { background: rgba(242,193,78,.14); color: var(--accent); }
+    .rules tr:nth-child(even) td { background: rgba(255,255,255,.04); }
+    .rules tr:last-child td { border-bottom: 0; }
+    @media (max-width: 640px) { .rules { margin: 10px; padding: 16px; border-width: 4px; } }
+    .rules a:not(.back-btn):not(.btn) { color: var(--accent); }
+    .rules h3 { margin: 18px 0 4px; font-size: 1.02rem; }
+    .rules h3 + p { margin-top: 0; }
+    .play-cta { display: inline-block; margin-top: 4px; }
+    .small-links { margin-top: 18px; font-size: .85rem; }
+  </style>
+</head>
+<body class="page">
+  <main class="rules">
+    <p><a class="back-btn" href="./"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Nazad na igru</a></p>
+    <h1>Privatnost</h1>
+    <p>Lora online (lora.igrajmo.online) beleži samo ono što je potrebno da igra radi i da vidimo koliko se igra. Ne prodajemo podatke i ne koristimo reklamne ni analitičke servise drugih firmi (nema Google Analytics-a ni Facebook piksela).</p>
+
+    <h2>Bez naloga</h2>
+    <ul>
+      <li>U vašem pregledaču se čuva <b>nasumična oznaka</b> (npr. „k3x9…“), ne kolačić. Po njoj brojimo posete; ona ne otkriva ko ste.</li>
+      <li>Za svaku posetu beležimo: vreme, stranicu, <b>odakle ste došli</b> (npr. Google, Facebook, link sobe) i <b>vrstu uređaja i pregledača</b> (npr. „telefon · Chrome · Android“).</li>
+      <li>Beležimo da je meč protiv računara započet ili završen — bez karata i poteza.</li>
+      <li><b>Ne čuvamo IP adresu</b>, lokaciju, ime ni bilo šta po čemu bi se mogli prepoznati.</li>
+      <li>Igra protiv računara, rezultati i statistika bez naloga čuvaju se <b>samo u vašem pregledaču</b>.</li>
+    </ul>
+
+    <h2>Sa nalogom</h2>
+    <ul>
+      <li>Ime za stolom, email i lozinka (lozinka je sačuvana šifrovano, niko je ne vidi).</li>
+      <li>Rejting, odigrani mečevi (rezultati i poeni po partijama) i lična statistika — da biste ih videli na svakom uređaju.</li>
+      <li>Poruke u chatu sobe, dok soba postoji.</li>
+    </ul>
+
+    <h2>Brisanje</h2>
+    <p>Nasumičnu oznaku i lokalnu statistiku brišete brisanjem podataka sajta u pregledaču. Za brisanje naloga i svih podataka uz njega pišite na <a href="mailto:antonije.dev@gmail.com">antonije.dev@gmail.com</a>.</p>
+
+    <p class="small-links">Poslednja izmena: oktobar 2026.</p>
+  </main>
+</body>
+</html>

@@ -46,6 +46,7 @@
     .rules h3 { margin: 18px 0 4px; font-size: 1.02rem; }
     .rules h3 + p { margin-top: 0; }
     .play-cta { display: inline-block; margin-top: 4px; }
+    .small-links { margin-top: 18px; font-size: .85rem; }
   </style>
 </head>
 <body class="page">
@@ -137,6 +138,19 @@
     <h3>Kako se igra Lora online?</h3>
     <p>Na ovoj stranici Lora se igra besplatno u pregledaču, bez instaliranja: online sa prijateljima u sobi sa kodom ili linkom, ili protiv računara. Prazna mesta u sobi popunjava računar.</p>
     <p><a class="btn primary play-cta" href="./">Igraj Loru online</a></p>
+    <p class="small-links"><a href="./privatnost.html">Privatnost</a></p>
   </main>
+  <script>
+    // poseta za admin statistiku (anonimno, isti nasumični id kao u igri)
+    try {
+      let v = localStorage.getItem('lora.vid');
+      if (!v) { v = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12); localStorage.setItem('lora.vid', v); }
+      let ref = '';
+      try { if (document.referrer && new URL(document.referrer).host !== location.host) ref = document.referrer; } catch {}
+      const q = new URLSearchParams(location.search);
+      fetch('api/visit', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ v, page: 'pravila', ref, src: q.get('utm_source') || '', app: matchMedia('(display-mode: standalone)').matches }) }).catch(() => {});
+    } catch {}
+  </script>
 </body>
 </html>

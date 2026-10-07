@@ -9,6 +9,7 @@ import { computeStats, streak, newRecords } from '../../engine/dist/stats.js';
 import { DEFAULT_CONTRACTS } from '../../engine/dist/contracts.js';
 import { adminRouter } from './admin.js';
 import { seoRouter } from './seo.js';
+import { classifySource, parseAgent, logVisit } from './visits.js';
 import { authRouter, verifyToken, fetchMe } from './auth.js';
 import { registerSocketHandlers } from './socket/index.js';
 import { loadPersistedRooms, removeAbandonedRooms, allRooms, status } from './rooms/Room.js';
@@ -30,7 +31,7 @@ async function main(): Promise<void> {
   // robots.txt, sitemap.xml, IndexNow ključ, pregled linka sobe
   app.use(seoRouter(PROJECT_ROOT));
   // Javno je SAMO ono što treba browseru — nikad server/ (baza, .env), docs/, node_modules/.
-  const PUBLIC = /^\/(lora\.html|pravila\.html|admin\.html|app\.js|online\.js|lora\.css|engine\/dist\/[\w.-]+\.js|icons\/cards\/[\w.-]+\.(?:svg|webp)|icon\.svg|manifest\.json|icons\/[\w.-]+\.(?:png|jpg))?$/;
+  const PUBLIC = /^\/(lora\.html|pravila\.html|privatnost\.html|admin\.html|app\.js|online\.js|lora\.css|engine\/dist\/[\w.-]+\.js|icons\/cards\/[\w.-]+\.(?:svg|webp)|icon\.svg|manifest\.json|icons\/[\w.-]+\.(?:png|jpg))?$/;
   // pregledači same traže /favicon.ico — dobijaju PNG ikonicu
   app.get('/favicon.ico', (_req, res) => res.type('png').sendFile(path.join(PROJECT_ROOT, 'icons/favicon-32.png')));
   app.use((req, res, next) => {
@@ -49,8 +50,18 @@ async function main(): Promise<void> {
   app.use('/api/admin', adminRouter);
   // Brojač posetilaca (i onih bez naloga) — nasumičan id iz browsera, bez ličnih podataka.
   app.post('/api/visit', (req, res) => {
-    const v = req.body?.v;
-    if (typeof v === 'string' && /^[a-z0-9]{8,32}$/.test(v)) recordVisit(v);
+    const { v, ref, src, page, app: standalone } = req.body ?? {};
+    if (typeof v === 'string' && /^[a-z0-9]{8,32}$/.test(v)) {
+      recordVisit(v);
+      // izvor/uređaj za admin karticu "Posete" — bez IP adrese
+      const agent = parseAgent(String(req.headers['user-agent'] ?? '').slice(0, 400), standalone === true);
+      logVisit({
+        visitor: v,
+        page: page === 'pravila' ? 'pravila' : 'igra',
+        source: classifySource(typeof ref === 'string' ? ref.slice(0, 300) : '', typeof src === 'string' ? src.replace(/[^\w.-]/g, '').toLowerCase() : ''),
+        ...agent,
+      });
+    }
     res.status(204).end();
   });
   // Anonimni događaji iz igre protiv računara (isti nasumični id kao /api/visit)

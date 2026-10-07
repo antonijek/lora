@@ -75,6 +75,20 @@ export async function initDb(): Promise<void> {
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE (user_id, client_id)
   )`);
+  // Posete (vidi visits.ts): jedan red po dolasku, bez IP adrese i ličnih podataka
+  db.run(`CREATE TABLE IF NOT EXISTS visit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts TEXT NOT NULL,
+    last_ts TEXT NOT NULL,
+    day TEXT NOT NULL,
+    visitor TEXT NOT NULL,
+    page TEXT NOT NULL,
+    source TEXT NOT NULL,
+    device TEXT NOT NULL,
+    browser TEXT NOT NULL,
+    os TEXT NOT NULL
+  )`);
+  db.run('CREATE INDEX IF NOT EXISTS visit_log_visitor ON visit_log (visitor, ts)');
   const cols = all<{ name: string }>('PRAGMA table_info(lora_players)').map(c => c.name);
   if (!cols.includes('last_seen_at')) db.run('ALTER TABLE lora_players ADD COLUMN last_seen_at TEXT');
   // pregledač iz kog je igrač prvi put ušao online (da se vidi ko je pre naloga igrao protiv računara)
