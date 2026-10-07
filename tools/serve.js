@@ -23,6 +23,8 @@ const MIME = {
 
 createServer(async (req, res) => {
   let path = decodeURIComponent(req.url.split('?')[0]);
+  // brojač poseta i događaji (pravi server: server/src) — ovde se samo prime, da stranice ne javljaju grešku
+  if (req.method === 'POST' && (path === '/api/visit' || path === '/api/event')) { res.writeHead(204); res.end(); return; }
   if (path === '/') path = '/lora.html';
   const filePath = normalize(join(ROOT, path));
   if (!filePath.startsWith(ROOT)) {

@@ -15,7 +15,8 @@ try {
     const page = await browser.newPage({ viewport });
     page.on('pageerror', e => errors.push(String(e)));
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-    page.on('requestfailed', r => errors.push(`request failed: ${r.url()}`));
+    // brojač poseta se prekine kad test odmah pređe na drugu stranicu — to nije greška
+    page.on('requestfailed', r => { if (!/\/api\/(visit|event)$/.test(r.url())) errors.push(`request failed: ${r.url()}`); });
     // početni ekran mora da prekriva ceo ekran (pokvaren CSS ga je jednom ostavio u uglu)
     await page.goto(`http://localhost:${PORT}/?fast`); // ?fast: bez brojača poseta (lokalni server nema /api)
     const box = await page.locator('#startScreen').boundingBox();
