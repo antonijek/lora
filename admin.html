@@ -170,6 +170,8 @@
       <div class="tiles" id="tilesMatches"></div>
       <div class="group-title">Protiv računara (i bez naloga)</div>
       <div class="tiles" id="tilesLocal"></div>
+      <div class="group-title">Pozivi prijatelja (WhatsApp, Viber, link sobe)</div>
+      <div class="tiles" id="tilesInvites"></div>
 
       <div class="card">
         <h2>Put do naloga <span class="muted" style="font-weight:400;font-size:.85rem">poslednjih 30 dana</span></h2>
@@ -352,6 +354,7 @@ async function loadStats() {
   $('tilesVisitors').innerHTML = tile(s.visitorsToday, 'danas') + tile(s.visitors7, 'za 7 dana') + tile(s.visitors30, 'za 30 dana');
   $('tilesMatches').innerHTML = tile(s.matchesToday, 'danas') + tile(s.matches7, 'za 7 dana') + tile(s.matchesTotal, 'ukupno');
   $('tilesLocal').innerHTML = tile(s.localStartedToday, 'započetih danas') + tile(s.localStarted7, 'započetih za 7 dana') + tile(s.localFinished7, 'odigranih do kraja za 7 dana');
+  $('tilesInvites').innerHTML = tile(s.roomShares7, 'poslatih poziva za 7 dana') + tile(s.roomArrivals7, 'došlo preko linka sobe za 7 dana');
   const f = s.funnel;
   const steps = [
     [f.visitors, 'posetilaca'],

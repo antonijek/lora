@@ -944,6 +944,7 @@ online = initOnline({
   toast,
   ask,
   notify,
+  track,
   onLogin: () => syncLocalMatches(),
   goHome,
   showScreen,

@@ -94,6 +94,7 @@ try {
   await api('/api/event', { v: 'posetilac01', kind: 'local_start' });
   await api('/api/event', { v: 'posetilac01', kind: 'local_finish' });
   await api('/api/event', { v: 'posetilac01', kind: 'signup_click' });
+  await api('/api/event', { v: 'posetilac01', kind: 'room_share' }); // Ana šalje link sobe na WhatsApp
   await api('/api/event', { v: 'posetilac02', kind: 'hakovanje' }); // nepoznata vrsta se ne upisuje
   const ana = io(`http://127.0.0.1:${LORA_PORT}`, { auth: { token: anaTok, vid: 'posetilac01' }, transports: ['websocket'], reconnection: false });
   ana.last = null;
@@ -106,6 +107,7 @@ try {
   check(st1.activeToday === 1 && st1.onlineNow === 1 && st1.totalPlayers === 1, `aktivni/online/ukupno = 1 (${st1.activeToday}/${st1.onlineNow}/${st1.totalPlayers})`);
   check(st1.daily.at(-1).visitors === 5 && st1.daily.at(-1).active === 1, 'današnji dan u grafikonu');
   check(st1.localStartedToday === 2 && st1.localFinished7 === 1 && st1.daily.at(-1).localMatches === 2, `mečevi protiv računara (${st1.localStartedToday}, ${st1.localFinished7})`);
+  check(st1.roomShares7 === 1 && st1.roomArrivals7 === 1, `pozivi: poslato ${st1.roomShares7}, došlo preko linka ${st1.roomArrivals7}`);
   const f = st1.funnel;
   check(f.visitors === 5 && f.playedLocal === 1 && f.finishedLocal === 1 && f.signupClicks === 1 && f.newOnline === 1 && f.fromLocal === 1,
     `put do naloga ${JSON.stringify(f)}`);

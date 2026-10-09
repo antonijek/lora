@@ -161,7 +161,7 @@ export function recordVisit(visitor: string): void {
   run("INSERT OR IGNORE INTO visits (day, visitor) VALUES (date('now'), ?)", [visitor]);
 }
 
-export const EVENT_KINDS = ['local_start', 'local_finish', 'signup_click'] as const;
+export const EVENT_KINDS = ['local_start', 'local_finish', 'signup_click', 'room_share'] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 
 export function recordEvent(visitor: string, kind: EventKind): void {

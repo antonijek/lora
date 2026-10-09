@@ -99,6 +99,11 @@ try {
   await ana.click('#createBtn');
   await ana.waitForSelector('#waitingScreen:not([hidden])');
   const code = (await ana.textContent('#roomCode')).trim();
+  // pozivanje: WhatsApp nosi link sobe; Viber i sistemsko deljenje samo na telefonu
+  const wa = await ana.getAttribute('#shareWa', 'href');
+  if (!wa.startsWith('https://wa.me/?text=') || !decodeURIComponent(wa).includes(`?room=${code}`)) errors.push(`WhatsApp link bez sobe: ${wa}`);
+  if (await ana.isVisible('#shareViber')) errors.push('Viber dugme vidljivo na računaru');
+  if (!(await ana.isVisible('#copyLinkBtn'))) errors.push('nema dugmeta Kopiraj link');
 
   // Boris dolazi preko linka sobe
   await boris.goto(`http://127.0.0.1:${PORT}/?fast&room=${code}`);

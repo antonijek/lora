@@ -199,7 +199,15 @@
   <section id="waitingScreen" class="screen" hidden>
     <div class="panel wide">
       <h2>Soba <span id="roomCode" class="code"></span></h2>
-      <p class="muted small">Pošaljite kod ili link prijateljima. <button id="copyLinkBtn" class="link" type="button">Kopiraj link</button></p>
+      <div class="share">
+        <p class="muted small">Pozovi prijatelje u ovu sobu:</p>
+        <div class="share-row">
+          <a id="shareWa" class="share-btn wa" href="https://wa.me/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.8L3.5 20.5l4.3-1.1A8.5 8.5 0 1 0 12 3.5z"/><path d="M9.2 8.4c-.4 2.9 3.2 6.6 6.3 6.4l.9-1.5-1.8-.9-.9.8a4.6 4.6 0 0 1-2.1-2.1l.8-.9-.9-1.8z"/></svg><span>WhatsApp</span></a>
+          <a id="shareViber" class="share-btn viber" href="viber://forward" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h12a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5h-6l-4.5 3.5v-3.5H6A2.5 2.5 0 0 1 3.5 14V6A2.5 2.5 0 0 1 6 3.5z"/><path d="M9.3 7.4c-.3 2.4 2.6 5.3 5.1 5.1l.7-1.2-1.5-.7-.7.6a3.8 3.8 0 0 1-1.7-1.7l.6-.7-.7-1.5z"/></svg><span>Viber</span></a>
+          <button id="shareMore" class="share-btn" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></svg><span>Još…</span></button>
+          <button id="copyLinkBtn" class="share-btn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Kopiraj link</span></button>
+        </div>
+      </div>
       <div id="waitSeats" class="wait-seats"></div>
       <p id="waitHint" class="muted small"></p>
       <div class="dialog-buttons">

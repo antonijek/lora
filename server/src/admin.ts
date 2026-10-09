@@ -156,6 +156,9 @@ function stats() {
     localStartedToday: count("SELECT COALESCE(SUM(n), 0) AS c FROM visit_events WHERE kind = 'local_start' AND day = date('now')"),
     localStarted7: count(`SELECT COALESCE(SUM(n), 0) AS c FROM visit_events WHERE kind = 'local_start' AND day >= ${since(7)}`),
     localFinished7: count(`SELECT COALESCE(SUM(n), 0) AS c FROM visit_events WHERE kind = 'local_finish' AND day >= ${since(7)}`),
+    // pozivi prijatelja: klikovi na WhatsApp / Viber / Kopiraj link u sobi, i ko je došao preko linka sobe
+    roomShares7: count(`SELECT COALESCE(SUM(n), 0) AS c FROM visit_events WHERE kind = 'room_share' AND day >= ${since(7)}`),
+    roomArrivals7: count(`SELECT COUNT(DISTINCT visitor) AS c FROM visit_log WHERE source = 'Link sobe' AND day >= ${since(7)}`),
     // put do naloga, poslednjih 30 dana: posetioci → igrali protiv računara → kliknuli "Napravi nalog" → ušli online
     funnel: {
       visitors: count(`SELECT COUNT(DISTINCT visitor) AS c FROM visits WHERE day >= ${since(30)}`),

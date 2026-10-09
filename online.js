@@ -256,6 +256,7 @@ export function initOnline(hooks) {
     hooks.showScreen('waitingScreen');
     const isHost = st.hostSeat === st.mySeat;
     $('roomCode').textContent = st.code;
+    renderShare(st.code);
     $('waitSeats').innerHTML = st.seats.map((s, i) => {
       const who = s.kind === 'empty' ? '<span class="muted">Slobodno mesto</span>'
         : `<div class="name"><b>${esc(s.name)}</b>${i === st.mySeat ? ' (vi)' : ''}${i === st.hostSeat ? ' · domaćin' : ''}</div>`
@@ -285,9 +286,33 @@ export function initOnline(hooks) {
     if (res.error) hooks.toast(res.error);
   });
   $('leaveRoomBtn').addEventListener('click', () => emit('room:leave'));
+  // ---------------------------------------------------------------- pozivanje prijatelja (WhatsApp, Viber, link)
+
+  // Viber "forward" i sistemsko deljenje rade samo na telefonu; na računaru ostaju WhatsApp i link.
+  const PHONE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const INVITE = 'Hajde da igramo Loru! Uđi u moju sobu:';
+  const roomUrl = (code = state?.code ?? '') => `${location.origin}${BASE}?room=${code}`;
+
+  function renderShare(code) {
+    const text = encodeURIComponent(`${INVITE} ${roomUrl(code)}`);
+    $('shareWa').href = `https://wa.me/?text=${text}`;
+    $('shareViber').href = `viber://forward?text=${text}`;
+    $('shareViber').hidden = !PHONE;
+    $('shareMore').hidden = !(PHONE && navigator.share);
+  }
+  $('shareWa').addEventListener('click', () => hooks.track('room_share'));
+  $('shareViber').addEventListener('click', () => hooks.track('room_share'));
+  $('shareMore').addEventListener('click', async () => {
+    try {
+      await navigator.share({ title: 'Lora', text: INVITE, url: roomUrl() });
+      hooks.track('room_share');
+    } catch { /* odustao od deljenja */ }
+  });
   $('copyLinkBtn').addEventListener('click', async () => {
-    const url = `${location.origin}${BASE}?room=${state?.code ?? ''}`;
-    try { await navigator.clipboard.writeText(url); $('copyLinkBtn').textContent = 'Kopirano ✓'; }
+    const url = roomUrl();
+    const label = $('copyLinkBtn').querySelector('span');
+    hooks.track('room_share');
+    try { await navigator.clipboard.writeText(url); label.textContent = 'Kopirano ✓'; }
     catch {
       const input = document.createElement('input');
       input.value = url;
@@ -295,7 +320,7 @@ export function initOnline(hooks) {
       input.addEventListener('focus', () => input.select());
       hooks.ask({ title: 'Link sobe', text: 'Kopirajte link i pošaljite ga prijateljima.', ok: 'Zatvori', cancel: null, icon: 'link', extra: input });
     }
-    setTimeout(() => { $('copyLinkBtn').textContent = 'Kopiraj link'; }, 2000);
+    setTimeout(() => { label.textContent = 'Kopiraj link'; }, 2000);
   });
   $('inviteBtn').addEventListener('click', async () => {
     const list = $('inviteList');

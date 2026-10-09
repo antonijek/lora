@@ -717,6 +717,20 @@ ol.list { counter-reset: r; }
 .list li .btn { padding: 6px 12px; }
 
 .code { font-family: ui-monospace, Consolas, monospace; color: var(--accent); letter-spacing: .12em; }
+/* pozivanje prijatelja u sobu: WhatsApp / Viber (samo telefon) / sistemsko deljenje / link */
+.share { display: flex; flex-direction: column; gap: 8px; }
+.share-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.share-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-weight: 700; font-size: .95rem;
+  padding: 10px 14px; border-radius: 10px; cursor: pointer; text-decoration: none; white-space: nowrap;
+  color: var(--ink); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.3);
+  transition: transform .12s, filter .12s, border-color .12s;
+}
+.share-btn:hover, .share-btn:focus-visible { transform: translateY(-1px); border-color: var(--accent); outline: none; }
+.share-btn svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.share-btn.wa { background: #25d366; color: #06301a; border-color: transparent; }
+.share-btn.viber { background: #7360f2; color: #fff; border-color: transparent; }
+.share-btn.wa:hover, .share-btn.viber:hover, .share-btn.wa:focus-visible, .share-btn.viber:focus-visible { filter: brightness(1.08); border-color: transparent; }
 .wait-seats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .wait-seat {
   display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 12px;
@@ -751,6 +765,7 @@ ol.list { counter-reset: r; }
   .action { padding: 12px 14px; }
   .action b { font-size: 1.05rem; }
   .wait-seats { grid-template-columns: 1fr; }
+  .share-row .share-btn { flex: 1 1 calc(50% - 4px); }
   .panel { padding: 18px; }
   /* na telefonu chat ide gore, da ne pokriva karte u ruci */
   .chat { top: 52px; bottom: auto; left: 8px; right: 8px; width: auto; height: 42dvh; }
